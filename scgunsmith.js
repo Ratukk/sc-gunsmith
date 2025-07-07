@@ -1249,12 +1249,8 @@ function handleConfirmationSuccess(buttonSelector, panelSelector) {
   }
 
   button.addEventListener("click", () => {
-    // ✅ Visual feedback
-    button.textContent = "Success";
-    button.style.backgroundColor = "#4CAF50"; // green
-    button.style.transition = "background-color 0.5s ease";
-
-    // ✅ Close after 1 second
+    button.classList.add("success"); // Apply a green background
+    button.textContent = "Success!";
     setTimeout(() => {
       panel.classList.remove("active");
     }, 1000);
@@ -1267,9 +1263,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // 🔗 DOM element references
   const shareMenu = document.querySelector(".share-loadout-menu");
-  const shareInner = document.querySelector(".share-loadout-inner");
   const saveShareMenu = document.querySelector(".save-share-loadout-menu");
-  const saveShareInner = document.querySelector(".save-share-loadout-inner");
 
   const shareBtn = document.querySelector(".share-loadout-btn");
   const cancelShareBtn = document.querySelector(".cancel-share-loadout");
@@ -1283,6 +1277,11 @@ document.addEventListener("DOMContentLoaded", () => {
     shareBtn.addEventListener("click", () => {
       shareMenu.style.display = "flex";
       shareMenu.classList.add("active");
+
+      // ✅ Delay running until after modal is visible
+      setTimeout(() => {
+        handleConfirmationSuccess(".confirm-share-btn", ".confirm-share-loadout");
+      }, 200);
     });
   }
 
@@ -1294,15 +1293,14 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // 🔴 Cancel receiving shared loadout
+  // 🔴 Cancel Save+Share Modal
   if (cancelSaveShareBtn && saveShareMenu) {
     cancelSaveShareBtn.addEventListener("click", () => {
-      saveShareMenu.classList.add("active"); // Optional show step
-      saveShareMenu.classList.remove("active"); // Immediate hide
+      saveShareMenu.classList.remove("active");
     });
   }
 
-  // 🔄 Toggle between card swiper & loadout cards
+  // 🔄 Toggle between swiper & loadout cards
   if (toggleBtn && cardSwitcher) {
     toggleBtn.addEventListener("click", () => {
       const weaponSwiper = document.querySelector(".swiper-wrapper");
@@ -1311,15 +1309,11 @@ document.addEventListener("DOMContentLoaded", () => {
       if (!weaponSwiper || !loadoutSwiper) return;
 
       const showingLoadouts = loadoutSwiper.style.display === "flex";
-
-      // Flip animation
       cardSwitcher.classList.toggle("flipped", !showingLoadouts);
 
-      // Toggle visibility
       loadoutSwiper.style.display = showingLoadouts ? "none" : "flex";
       weaponSwiper.style.display = showingLoadouts ? "flex" : "none";
 
-      // Animate loadout cards in
       if (!showingLoadouts) {
         const cards = loadoutSwiper.querySelectorAll(".loadout-slide");
         cards.forEach((card, i) => {
@@ -1335,23 +1329,11 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // ✅ WAIT for confirmation buttons before running success handler
-  function waitForButtonsAndInit(retries = 10) {
-    const shareBtn = document.querySelector(".confirm-share-btn");
-    const sharePanel = document.querySelector(".confirm-share-loadout");
-    const saveBtn = document.querySelector(".confirm-save-share-button");
-    const savePanel = document.querySelector(".confirm-save-loadout");
-
-    if (shareBtn && sharePanel && saveBtn && savePanel) {
-      handleConfirmationSuccess(".confirm-share-btn", ".confirm-share-loadout");
+  // 🟢 Save+Share Modal: Wait for render before attaching handler
+  if (saveShareMenu) {
+    saveShareMenu.addEventListener("transitionend", () => {
       handleConfirmationSuccess(".confirm-save-share-button", ".confirm-save-loadout");
-    } else if (retries > 0) {
-      setTimeout(() => waitForButtonsAndInit(retries - 1), 300);
-    } else {
-      console.warn("⚠️ Could not find confirmation buttons after retries");
-    }
+    });
   }
-
-  waitForButtonsAndInit(); // 👈 just call it directly inside the main listener
 });
 })();
