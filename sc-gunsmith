@@ -1,0 +1,585 @@
+// scgunsmith.js - Part 1/3
+// --------------------------------------------------
+// Global state, constants, loader animation, basic UI init
+
+(function () {
+  "use strict";
+
+  // 🌐 Global State Variables
+  window.selectedBarrelSlug = null;
+  window.selectedSightSlug = null;
+  window.selectedUnderbarrelSlug = null;
+  window.currentBaseWeapon = null;
+  window.originalWeaponSlug = null;
+  window.cardOrder = 500;
+  window.lastSelectedSlide = null;
+  window.lastSelectedWeaponCard = null;
+  window.lastSelectedLoadoutIndex = null;
+  let openWrapper = null;
+  let currentClonedCard = null;
+  let previewImageLocked = false;
+
+  // 🗺️ Weapon Image Map — Add your weapons here
+  window.weaponImageMap = {
+    "gallant-rifle": "https://cdn.prod.website-files.com/68390e8290cb63217295e99d/6869e8a3e6fe2cab7b567048_gallant-assault-rifle.png",
+    "p6-lr-sniper-rifle": "https://cdn.prod.website-files.com/68390e8290cb63217295e99d/6869e8a3538ac2811876e094_p6-lr-sniper-rifle-small.png",
+    // Add more weapon images here...
+  };
+
+  // 🃏 Poker icon map (top & bottom icons)
+  window.pokerIconMap = {
+    "black-clubs-top": "https://cdn.prod.website-files.com/68390e8290cb63217295e99d/6860a76f7a04ae7ac43cec22_Clover.png",
+    "red-clubs-top": "https://cdn.prod.website-files.com/68390e8290cb63217295e99d/6860bb843364a93449a5fd8f_red-clubt.png",
+    "black-hearts-top": "https://cdn.prod.website-files.com/68390e8290cb63217295d/6860bb8ef2ef31c08603c6d0_black-heart.png",
+    "red-hearts-top": "https://cdn.prod.website-files.com/68390e8290cb63217295e99d/6860b41cfd544882ddb14692_heart-card.png",
+    // ... Add all icons you need (both top & bottom variants)
+  };
+
+  // Disable page scroll during loading animation
+  document.documentElement.style.overflow = 'hidden';
+
+  // Loader + progress bar animation (fades out after complete)
+  window.addEventListener("load", function () {
+    const loader = document.querySelector(".loader");
+    const fill = document.querySelector(".loading-bar-fill");
+    if (!loader || !fill) {
+      document.documentElement.style.overflow = '';
+      return;
+    }
+
+    loader.style.transition = "opacity 0.6s ease";
+    let progress = 0;
+    const interval = setInterval(() => {
+      progress += Math.floor(Math.random() * 10) + 5;
+      if (progress >= 100) {
+        progress = 100;
+        clearInterval(interval);
+        setTimeout(() => {
+          loader.style.opacity = "0";
+          loader.style.pointerEvents = "none";
+          setTimeout(() => {
+            loader.style.display = "none";
+            document.documentElement.style.overflow = '';
+          }, 700);
+        }, 200);
+      }
+      fill.style.width = `${progress}%`;
+    }, 100);
+  });
+
+  // Helper: show/hide attachment panel wrappers and manage z-index
+  const locationDivs = {
+    ".weapon-barrel-wrapper": ".attachment-location-div",
+    ".weapon-sight-wrapper": ".sight-location-div",
+    ".weapon-underbarrel-wrapper": ".underbarrel-location-div"
+  };
+
+  function hideWrapper(wrapper, wrapperSelector) {
+    if (!wrapper) return;
+    wrapper.style.display = "none";
+    wrapper.style.opacity = "0";
+    wrapper.style.visibility = "hidden";
+    wrapper.style.pointerEvents = "none";
+    const loc = document.querySelector(locationDivs[wrapperSelector]);
+    if (loc) loc.style.zIndex = "1";
+  }
+
+  function showWrapper(wrapper, wrapperSelector) {
+    if (!wrapper) return;
+    wrapper.style.display = "grid";
+    wrapper.style.opacity = "1";
+    wrapper.style.visibility = "visible";
+    wrapper.style.pointerEvents = "auto";
+    const loc = document.querySelector(locationDivs[wrapperSelector]);
+    if (loc) loc.style.zIndex = "10";
+  }
+
+  // Helper: show/hide items based on data attribute filtering
+  function showMatchingElements(selector, attr, value, display = "block") {
+    document.querySelectorAll(selector).forEach(el => {
+      const attrVal = el.getAttribute(attr)?.trim();
+      const matches = attrVal?.split(",").map(s => s.trim()).includes(value);
+      el.style.display = matches ? display : "none";
+      el.style.opacity = matches ? "1" : "0";
+      el.style.visibility = matches ? "visible" : "hidden";
+      el.style.pointerEvents = matches ? "auto" : "none";
+    });
+  }
+
+  // Toggle weapon attachment wrappers (only one open at a time)
+  function toggleWrapper(wrapperSelector) {
+    const wrapper = document.querySelector(wrapperSelector);
+    if (!wrapper) return;
+    if (openWrapper && openWrapper !== wrapper) {
+      const prevSelector = Object.keys(locationDivs).find(key => document.querySelector(key) === openWrapper);
+      hideWrapper(openWrapper, prevSelector);
+    }
+    const isVisible = wrapper.style.visibility === "visible";
+    if (isVisible) {
+      hideWrapper(wrapper, wrapperSelector);
+      openWrapper = null;
+    } else {
+      showWrapper(wrapper, wrapperSelector);
+      openWrapper = wrapper;
+    }
+  }
+
+  // ... Next up in Part 2: Attachment selection logic, weapon selection, preview updates, save/load system
+
+  // Expose some helpers globally for later parts
+  window.scgunsmithHelpers = {
+    hideWrapper,
+    showWrapper,
+    showMatchingElements,
+    toggleWrapper
+  };
+
+  // DOM ready handler for UI setup
+  document.addEventListener("DOMContentLoaded", function () {
+    // Setup card toggle switch flipping
+    const switcher = document.querySelector(".card-toggle-switch");
+    if (switcher) {
+      switcher.addEventListener("click", () => {
+        switcher.classList.toggle("flipped");
+      });
+    }
+
+    // Initially update share button state
+    if (window.updateShareButtonState) {
+      window.updateShareButtonState();
+    }
+  });
+
+})();
+
+// scgunsmith.js - Part 2/3
+// --------------------------------------------------
+// Weapon selection, cloning, attachment button handlers, icon preview updates
+
+(function () {
+  "use strict";
+
+  // Helper to update icon previews for selected attachments (barrel, sight, underbarrel)
+  function updateIcon(type, item) {
+    const iconArea = document.querySelector(`.selected-${type}-icon`);
+    if (!iconArea || !item) return;
+    const image = item.querySelector("img");
+    if (!image) return;
+    const clone = document.createElement("div");
+    clone.className = item.className;
+    clone.appendChild(image.cloneNode(true));
+    clone.style.display = "block";
+    clone.style.width = "100%";
+    clone.style.height = "100%";
+    clone.addEventListener("click", e => {
+      e.preventDefault();
+      resetSelection(type);
+      if (type === "barrel" && window.originalWeaponSlug) {
+        updatePanels(window.originalWeaponSlug, true);
+      }
+    });
+    iconArea.innerHTML = "";
+    iconArea.appendChild(clone);
+  }
+
+  // Reset selection for attachment type and show all possible options again
+  function resetSelection(type) {
+    const map = {
+      barrel: { clear: () => window.selectedBarrelSlug = null, iconSelector: ".selected-barrel-icon" },
+      sight: { clear: () => window.selectedSightSlug = null, iconSelector: ".selected-sight-icon" },
+      underbarrel: { clear: () => window.selectedUnderbarrelSlug = null, iconSelector: ".selected-underbarrel-icon" }
+    };
+    map[type].clear();
+    const icon = document.querySelector(map[type].iconSelector);
+    if (icon) icon.innerHTML = "";
+
+    if (type === "sight") {
+      window.scgunsmithHelpers.showMatchingElements(".sight-attachment-item", "data-sight", "___no-match___");
+    }
+    if (type === "underbarrel") {
+      window.scgunsmithHelpers.showMatchingElements(".underbarrel-attachment-item", "data-underbarrel", "___no-match___");
+    }
+  }
+
+  // Update the attachment panels based on selected barrel slug
+  function updatePanels(selectedSlug, isBarrel = false) {
+    // Show/hide attachment items filtered by the selected barrel slug
+    window.scgunsmithHelpers.showMatchingElements(".sight-attachment-item", "data-sight", selectedSlug);
+    window.scgunsmithHelpers.showMatchingElements(".underbarrel-attachment-item", "data-underbarrel", selectedSlug);
+
+    // If barrel changed, reset sight & underbarrel selections for consistency
+    if (isBarrel) {
+      resetSelection("sight");
+      resetSelection("underbarrel");
+    }
+  }
+
+  // Add click handlers to weapon cards for selection + cloning to .weapon-choice
+  function setupWeaponCardClicks() {
+    const cards = document.querySelectorAll(".swiper-slide-content");
+
+    cards.forEach(card => {
+      card.addEventListener("click", e => {
+        e.preventDefault();
+
+        const baseWeaponSlug = card.getAttribute("data-base-weapon");
+        if (!baseWeaponSlug) return;
+
+        // Prevent re-selecting same base weapon multiple times
+        if (window.currentBaseWeapon === baseWeaponSlug) return;
+
+        // Restore previously hidden card if any
+        if (window.lastSelectedWeaponCard) {
+          window.scgunsmithHelpers.restoreHiddenWeaponCard();
+        }
+
+        // Hide clicked card in swiper (opacity 0 + order 1000 to push back)
+        card.parentElement.style.opacity = "0";
+        card.parentElement.style.order = "1000";
+        card.parentElement.style.zIndex = "0";
+
+        window.lastSelectedWeaponCard = card.parentElement;
+        window.currentBaseWeapon = baseWeaponSlug;
+        window.originalWeaponSlug = baseWeaponSlug;
+
+        // Clone the card and append to .weapon-choice-div
+        const weaponChoiceDiv = document.querySelector(".weapon-choice-div");
+        if (!weaponChoiceDiv) return;
+
+        // Remove previous clone if any
+        if (window.currentClonedCard) {
+          weaponChoiceDiv.removeChild(window.currentClonedCard);
+          window.currentClonedCard = null;
+        }
+
+        const clone = card.cloneNode(true);
+        clone.classList.add("weapon-choice-card");
+        clone.style.pointerEvents = "auto";
+        clone.style.opacity = "1";
+        clone.style.order = "0";
+        clone.style.zIndex = "10";
+
+        // Remove hover effects from clone
+        clone.querySelector(".swiper-slide-content")?.classList.remove("hovered");
+
+        weaponChoiceDiv.appendChild(clone);
+        window.currentClonedCard = clone;
+
+        // Reset selected attachments
+        window.selectedBarrelSlug = null;
+        window.selectedSightSlug = null;
+        window.selectedUnderbarrelSlug = null;
+
+        // Reset attachment icons UI
+        document.querySelector(".selected-barrel-icon")?.innerHTML = "";
+        document.querySelector(".selected-sight-icon")?.innerHTML = "";
+        document.querySelector(".selected-underbarrel-icon")?.innerHTML = "";
+
+        // Update attachment panels based on selected weapon slug
+        updatePanels(baseWeaponSlug);
+
+        // Update weapon image preview for save/load UI
+        updateWeaponImageInPreview();
+
+        // Update save/load share button state
+        if (window.updateShareButtonState) window.updateShareButtonState();
+      });
+    });
+  }
+
+  // Setup attachment selection button handlers (barrel, sight, underbarrel)
+  function setupAttachmentButtonClicks() {
+    const attachmentTypes = [
+      { selector: ".weapon-barrel-wrapper", dataAttr: "data-barrel", type: "barrel" },
+      { selector: ".weapon-sight-wrapper", dataAttr: "data-sight", type: "sight" },
+      { selector: ".weapon-underbarrel-wrapper", dataAttr: "data-underbarrel", type: "underbarrel" }
+    ];
+
+    attachmentTypes.forEach(({ selector, dataAttr, type }) => {
+      document.querySelectorAll(`${selector} [${dataAttr}]`).forEach(button => {
+        const item = button.closest(selector);
+        const tooltip = item.querySelector(`.weapon-${type}-tooltip`);
+
+        // Show tooltip on hover
+        button.addEventListener("mouseenter", () => {
+          document.querySelectorAll(`${selector} .weapon-${type}-tooltip`).forEach(t => {
+            t.style.visibility = "hidden";
+            t.style.opacity = "0";
+            t.style.display = "none";
+          });
+          if (tooltip) {
+            tooltip.style.visibility = "visible";
+            tooltip.style.opacity = "1";
+            tooltip.style.display = "block";
+          }
+        });
+
+        // Handle click on attachment button
+        button.addEventListener("click", e => {
+          e.preventDefault();
+          const newSlug = button.getAttribute(dataAttr)?.trim();
+          if (!newSlug) return;
+
+          // Save selection globally
+          if (type === "barrel") window.selectedBarrelSlug = newSlug;
+          if (type === "sight") window.selectedSightSlug = newSlug;
+          if (type === "underbarrel") window.selectedUnderbarrelSlug = newSlug;
+
+          // Update icon preview for selected attachment
+          updateIcon(type, item);
+
+          // For barrels, update panels since barrel changes allowed sights/underbarrels
+          if (type === "barrel") updatePanels(newSlug, true);
+
+          // Filter sight and underbarrel attachment lists by the selected slug
+          if (type === "sight") window.scgunsmithHelpers.showMatchingElements(".sight-attachment-item", "data-sight", newSlug);
+          if (type === "underbarrel") window.scgunsmithHelpers.showMatchingElements(".underbarrel-attachment-item", "data-underbarrel", newSlug);
+
+          // Close wrapper panel after selection
+          const wrapper = document.querySelector(`.weapon-${type}-wrapper`);
+          if (wrapper) {
+            window.scgunsmithHelpers.hideWrapper(wrapper, `.weapon-${type}-wrapper`);
+            openWrapper = null;
+          }
+
+          // Update share button state on new selection
+          if (window.updateShareButtonState) window.updateShareButtonState();
+        });
+      });
+    });
+  }
+
+  // Update the weapon image preview on save/load UI (uses originalWeaponSlug and weaponImageMap)
+  function updateWeaponImageInPreview() {
+    const weaponImagePreview = document.querySelector("img.weapon-image-save");
+    if (!weaponImagePreview) {
+      console.warn("⚠️ weapon-image-save img element not found");
+      return;
+    }
+    const originalSlug = window.originalWeaponSlug;
+    if (!originalSlug || !window.weaponImageMap[originalSlug]) {
+      weaponImagePreview.src = "https://cdn.prod.website-files.com/68390e8290cb63217295e99d/6862021c6c19d845e357fffc_Black%20Diamond.png";
+      return;
+    }
+    const newSrc = window.weaponImageMap[originalSlug];
+    if (weaponImagePreview.src !== newSrc) {
+      weaponImagePreview.src = newSrc;
+    }
+  }
+
+  // Initialize weapon card and attachment handlers after DOM ready
+  document.addEventListener("DOMContentLoaded", function () {
+    setupWeaponCardClicks();
+    setupAttachmentButtonClicks();
+
+    // Initial update for weapon image preview & share button
+    updateWeaponImageInPreview();
+    if (window.updateShareButtonState) window.updateShareButtonState();
+  });
+
+  // Expose functions globally for future parts or debugging
+  window.scgunsmithActions = {
+    updateIcon,
+    resetSelection,
+    updatePanels,
+    setupWeaponCardClicks,
+    setupAttachmentButtonClicks,
+    updateWeaponImageInPreview
+  };
+
+})();
+
+// scgunsmith.js - Part 3/3
+// --------------------------------------------------
+// Save/load weapon loadouts, localStorage integration, share button state, utilities
+
+(function () {
+  "use strict";
+
+  // Key for localStorage
+  const STORAGE_KEY = "scgunsmith_saved_loadouts";
+
+  // Retrieve saved loadouts from localStorage or empty array
+  function getSavedLoadouts() {
+    try {
+      const data = localStorage.getItem(STORAGE_KEY);
+      return data ? JSON.parse(data) : [];
+    } catch (e) {
+      console.error("Error parsing saved loadouts:", e);
+      return [];
+    }
+  }
+
+  // Save full loadout array back to localStorage
+  function saveLoadouts(loadouts) {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(loadouts));
+    } catch (e) {
+      console.error("Error saving loadouts:", e);
+    }
+  }
+
+  // Generate a unique ID for new loadouts
+  function generateLoadoutId() {
+    return "loadout-" + Date.now() + "-" + Math.floor(Math.random() * 1000);
+  }
+
+  // Render all saved loadout cards inside .loadout-swiper-wrapper container
+  function renderLoadoutCards() {
+    const container = document.querySelector(".loadout-swiper-wrapper");
+    if (!container) return;
+
+    const loadouts = getSavedLoadouts();
+    container.innerHTML = "";
+
+    loadouts.forEach((loadout, index) => {
+      const card = document.createElement("div");
+      card.className = "loadout-slide";
+      card.setAttribute("data-loadout-id", loadout.id || generateLoadoutId());
+      card.setAttribute("data-loadout-index", index);
+
+      // Compose diamonds presence classes for barrel, sight, underbarrel
+      const diamondsHtml = `
+        <div class="diamond-column">
+          <div class="diamond ${loadout.barrel ? "white-diamond-barrel" : "black-diamond-barrel"}" data-slot="barrel"></div>
+          <div class="diamond ${loadout.sight ? "white-diamond-sight" : "black-diamond-sight"}" data-slot="sight"></div>
+          <div class="diamond ${loadout.underbarrel ? "white-diamond-underbarrel" : "black-diamond-underbarrel"}" data-slot="underbarrel"></div>
+        </div>
+      `;
+
+      card.innerHTML = `
+        <div class="loadout-slide-content">
+          <div class="weapon-image-wrapper">
+            <img class="loadout-weapon-img" src="${window.weaponImageMap[loadout.baseWeapon] || 'https://cdn.prod.website-files.com/68390e8290cb63217295e99d/6862021c6c19d845e357fffc_Black%20Diamond.png'}" alt="Loadout weapon" />
+            <div class="loadout-poker-customization-top">
+              <img class="red-hearts-top" src="https://cdn.prod.website-files.com/68390e8290cb63217295e99d/6860b41cfd544882ddb14692_heart-card.png" alt="Red Hearts" />
+            </div>
+            <div class="loadout-poker-customization-bottom">
+              <img class="black-spades-bottom" src="https://cdn.prod.website-files.com/68390e8290cb63217295e99d/6860b4caed9b84496b1ca3f3_Spade3.png" alt="Black Spades" />
+            </div>
+          </div>
+          <div class="loadout-name-top" data-live-name-top>${loadout.name || "Unnamed"}</div>
+          ${diamondsHtml}
+          <div class="loadout-name-bottom" data-live-name-bottom>${loadout.name || "Unnamed"}</div>
+          <button class="loadout-delete-btn" aria-label="Delete loadout" title="Delete Loadout" style="position:absolute;top:5px;right:5px;background:none;border:none;cursor:pointer;">
+            <img src="https://cdn.prod.website-files.com/68390e8290cb63217295e99d/686a022e6dffb52b6a2b15c4_trash-can-icon.png" alt="Delete" style="width:20px;height:20px;" />
+          </button>
+        </div>
+      `;
+
+      // Loadout card click loads the loadout into weapon + attachments
+      card.addEventListener("click", e => {
+        if (e.target.closest(".loadout-delete-btn")) {
+          // Delete button clicked: remove loadout
+          e.stopPropagation();
+          deleteLoadout(index);
+          return;
+        }
+        loadLoadout(index);
+      });
+
+      container.appendChild(card);
+    });
+  }
+
+  // Load a loadout by index: updates UI selections and preview images
+  function loadLoadout(index) {
+    const loadouts = getSavedLoadouts();
+    if (!loadouts[index]) return;
+    const loadout = loadouts[index];
+
+    // Set global weapon and attachments
+    window.currentBaseWeapon = loadout.baseWeapon;
+    window.originalWeaponSlug = loadout.baseWeapon;
+    window.selectedBarrelSlug = loadout.barrel || null;
+    window.selectedSightSlug = loadout.sight || null;
+    window.selectedUnderbarrelSlug = loadout.underbarrel || null;
+
+    // Update preview icons and panels accordingly
+    window.scgunsmithActions.updatePanels(loadout.baseWeapon, true);
+
+    // Update weapon image preview
+    window.scgunsmithActions.updateWeaponImageInPreview();
+
+    // Update attachment icons preview
+    if (window.selectedBarrelSlug) {
+      const barrelItem = document.querySelector(`.weapon-barrel-wrapper [data-barrel="${window.selectedBarrelSlug}"]`)?.closest(".weapon-barrel-wrapper");
+      if (barrelItem) window.scgunsmithActions.updateIcon("barrel", barrelItem);
+    }
+    if (window.selectedSightSlug) {
+      const sightItem = document.querySelector(`.weapon-sight-wrapper [data-sight="${window.selectedSightSlug}"]`)?.closest(".weapon-sight-wrapper");
+      if (sightItem) window.scgunsmithActions.updateIcon("sight", sightItem);
+    }
+    if (window.selectedUnderbarrelSlug) {
+      const underbarrelItem = document.querySelector(`.weapon-underbarrel-wrapper [data-underbarrel="${window.selectedUnderbarrelSlug}"]`)?.closest(".weapon-underbarrel-wrapper");
+      if (underbarrelItem) window.scgunsmithActions.updateIcon("underbarrel", underbarrelItem);
+    }
+
+    // Update share button state
+    if (window.updateShareButtonState) window.updateShareButtonState();
+  }
+
+  // Delete loadout by index, then re-render cards and update localStorage
+  function deleteLoadout(index) {
+    const loadouts = getSavedLoadouts();
+    if (index < 0 || index >= loadouts.length) return;
+    loadouts.splice(index, 1);
+    saveLoadouts(loadouts);
+    renderLoadoutCards();
+    if (window.updateShareButtonState) window.updateShareButtonState();
+  }
+
+  // Save a new loadout or update existing one (used in your Save panel logic)
+  function saveLoadout(newLoadout) {
+    const loadouts = getSavedLoadouts();
+
+    // If loadout has an ID, update existing, else add new
+    if (newLoadout.id) {
+      const idx = loadouts.findIndex(l => l.id === newLoadout.id);
+      if (idx >= 0) {
+        loadouts[idx] = newLoadout;
+      } else {
+        loadouts.push(newLoadout);
+      }
+    } else {
+      newLoadout.id = generateLoadoutId();
+      loadouts.push(newLoadout);
+    }
+
+    saveLoadouts(loadouts);
+    renderLoadoutCards();
+    if (window.updateShareButtonState) window.updateShareButtonState();
+  }
+
+  // Share button state update depending on selection
+  window.updateShareButtonState = function () {
+    const shareButton = document.querySelector(".share-loadout-btn");
+    const loadoutSelected = window.lastSelectedLoadoutIndex !== null && window.lastSelectedLoadoutIndex !== undefined;
+
+    if (!shareButton) return;
+
+    if (loadoutSelected) {
+      shareButton.style.pointerEvents = "auto";
+      shareButton.style.filter = "none";
+    } else {
+      shareButton.style.pointerEvents = "none";
+      shareButton.style.filter = "grayscale(100%) brightness(61%)";
+    }
+  };
+
+  // Expose save/load functions globally to be called from your save panel UI
+  window.scgunsmithSaveLoad = {
+    getSavedLoadouts,
+    saveLoadout,
+    deleteLoadout,
+    loadLoadout,
+    renderLoadoutCards
+  };
+
+  // Initial render of loadouts after DOM ready
+  document.addEventListener("DOMContentLoaded", () => {
+    renderLoadoutCards();
+    window.updateShareButtonState();
+  });
+
+})();
