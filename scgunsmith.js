@@ -1334,23 +1334,23 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-function waitForButtonsAndInit(retries = 10) {
-  const shareBtn = document.querySelector(".confirm-share-btn");
-  const sharePanel = document.querySelector(".confirm-share-loadout");
-  const saveBtn = document.querySelector(".confirm-save-share-button");
-  const savePanel = document.querySelector(".confirm-save-loadout");
+  // ✅ WAIT for confirmation buttons before running success handler
+  function waitForButtonsAndInit(retries = 10) {
+    const shareBtn = document.querySelector(".confirm-share-btn");
+    const sharePanel = document.querySelector(".confirm-share-loadout");
+    const saveBtn = document.querySelector(".confirm-save-share-button");
+    const savePanel = document.querySelector(".confirm-save-loadout");
 
-  if (shareBtn && sharePanel && saveBtn && savePanel) {
-    handleConfirmationSuccess(".confirm-share-btn", ".confirm-share-loadout");
-    handleConfirmationSuccess(".confirm-save-share-button", ".confirm-save-loadout");
-  } else if (retries > 0) {
-    setTimeout(() => waitForButtonsAndInit(retries - 1), 300);
-  } else {
-    console.warn("⚠️ Could not find confirmation buttons after retries");
+    if (shareBtn && sharePanel && saveBtn && savePanel) {
+      handleConfirmationSuccess(".confirm-share-btn", ".confirm-share-loadout");
+      handleConfirmationSuccess(".confirm-save-share-button", ".confirm-save-loadout");
+    } else if (retries > 0) {
+      setTimeout(() => waitForButtonsAndInit(retries - 1), 300);
+    } else {
+      console.warn("⚠️ Could not find confirmation buttons after retries");
+    }
   }
-}
 
-document.addEventListener("DOMContentLoaded", () => {
-  waitForButtonsAndInit();
+  waitForButtonsAndInit(); // 👈 just call it directly inside the main listener
 });
 })();
