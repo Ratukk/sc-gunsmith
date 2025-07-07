@@ -990,22 +990,21 @@ if (sharedRaw && sharedFlag === "1") {
     });
   }
 
-  // ✅ CONFIRM share: generate & copy URL
-  if (confirmShare) {
-    confirmShare.addEventListener("click", () => {
-      const loadouts = JSON.parse(localStorage.getItem("savedLoadouts") || "[]");
-      const index = window.lastSelectedLoadoutIndex;
-      if (!loadouts[index]) return;
+// ✅ CONFIRM share: generate & copy URL
+if (confirmShare) {
+  confirmShare.addEventListener("click", () => {
+    const loadouts = JSON.parse(localStorage.getItem("savedLoadouts") || "[]");
+    const index = window.lastSelectedLoadoutIndex;
+    if (!loadouts[index]) return;
 
-      const data = encodeURIComponent(JSON.stringify(loadouts[index]));
-      const url = `${window.location.origin}${window.location.pathname}?sharedLoadout=1&data=${data}`;
+    const data = encodeURIComponent(JSON.stringify(loadouts[index]));
+    const url = `${window.location.origin}${window.location.pathname}?sharedLoadout=1&data=${data}`;
 
-      navigator.clipboard.writeText(url);
-      });
+    navigator.clipboard.writeText(url); // 🧼 Alert removed, nothing added
 
-      shareMenu.classList.remove("show");
-    });
-  }
+    shareMenu.classList.remove("show");
+  });
+}
 
   // 🔄 CHECK FOR SHARED LOADOUT ON PAGE LOAD
     const urlParams = new URLSearchParams(window.location.search);
