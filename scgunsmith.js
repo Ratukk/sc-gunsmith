@@ -50,20 +50,15 @@ window.pokerIconMap = {
 
 };
 
-window.updateShareButtonState = function () {
-  const shareButton = document.querySelector(".share-loadout-btn");
-  const loadoutSelected = window.lastSelectedLoadoutIndex !== null;
+function updateShareButtonState() {
+  const btn = document.querySelector(".share-loadout-btn");
+  const enabled = window.lastSelectedLoadoutIndex != null;
 
-  if (!shareButton) return;
+  if (!btn) return;
 
-  if (loadoutSelected) {
-    shareButton.style.pointerEvents = "auto";
-    shareButton.style.filter = "none";
-  } else {
-    shareButton.style.pointerEvents = "none";
-    shareButton.style.filter = "grayscale(100%) brightness(61%)";
-  }
-};
+  btn.disabled = !enabled;
+  btn.style.filter = enabled ? "none" : "grayscale(100%) brightness(61%)";
+}
 
   // 🚫 Disable scroll while loading
   document.documentElement.style.overflow = 'hidden';
@@ -97,7 +92,7 @@ window.updateShareButtonState = function () {
   });
 
 document.addEventListener("DOMContentLoaded", function () {
-  window.updateShareButtonState(); // ✅ Safe to call here
+  updateShareButtonState(); // ✅ Safe to call here
 
   const weaponImageMap = {}; // If needed locally
   const locationDivs = {
@@ -849,6 +844,7 @@ div.addEventListener("mouseleave", () => {
   window.lastSelectedLoadoutIndex = index;
   window.currentClonedCard = cloneContent;
   window.lastSelectedSlide = div;
+  updateShareButtonState();
 
   applyLoadout(loadout);
 });
@@ -888,7 +884,6 @@ div.addEventListener("mouseleave", () => {
   function loadLoadouts() {
     const saved = JSON.parse(localStorage.getItem("savedLoadouts") || "[]");
     loadoutWrapper.innerHTML = ""; // clear existing
-  window.updateShareButtonState();
 
     if (!saved.length) {
       loadoutWrapper.innerHTML = `<div class="no-loadouts">No loadouts saved yet.</div>`;
