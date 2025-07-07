@@ -9,6 +9,34 @@ function updateShareButtonState() {
   btn.style.pointerEvents = enabled ? "auto" : "none";
 }
 
+function handleConfirmationSuccess(buttonSelector, panelSelector) {
+  const button = document.querySelector(buttonSelector);
+  const panel = document.querySelector(panelSelector);
+
+  if (!button || !panel) return;
+
+  button.addEventListener("click", () => {
+    // Set success styles
+    button.style.transition = "background-color 0.5s ease";
+    button.style.backgroundColor = "#27ae60"; // ✅ Green
+    button.textContent = "Success";
+
+    // Wait 1 second before closing the panel
+    setTimeout(() => {
+      panel.style.transition = "opacity 0.5s ease";
+      panel.style.opacity = "0";
+      panel.style.pointerEvents = "none";
+
+      // Reset everything for next time
+      setTimeout(() => {
+        panel.style.display = "none";
+        button.style.backgroundColor = "";
+button.textContent = buttonSelector.includes("share") ? "Copy URL" : "Save";
+      }, 500);
+    }, 1000);
+  });
+}
+
 (function () {
   // 🌐 Global state variables
   window.selectedBarrelSlug = null;
@@ -112,33 +140,6 @@ document.addEventListener("DOMContentLoaded", function () {
   // ... any more logic that touches DOM should also go here
 });
 
-function handleConfirmationSuccess(buttonSelector, panelSelector) {
-  const button = document.querySelector(buttonSelector);
-  const panel = document.querySelector(panelSelector);
-
-  if (!button || !panel) return;
-
-  button.addEventListener("click", () => {
-    // Set success styles
-    button.style.transition = "background-color 0.5s ease";
-    button.style.backgroundColor = "#27ae60"; // ✅ Green
-    button.textContent = "Success";
-
-    // Wait 1 second before closing the panel
-    setTimeout(() => {
-      panel.style.transition = "opacity 0.5s ease";
-      panel.style.opacity = "0";
-      panel.style.pointerEvents = "none";
-
-      // Reset everything for next time
-      setTimeout(() => {
-        panel.style.display = "none";
-        button.style.backgroundColor = "";
-button.textContent = buttonSelector.includes("share") ? "Copy URL" : "Save";
-      }, 500);
-    }, 1000);
-  });
-}
   
 function getOriginalWeaponImageSrc() {
   const originalSlug = window.originalWeaponSlug;
