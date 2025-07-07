@@ -951,14 +951,10 @@ if (sharedRaw && sharedFlag === "1") {
   }
 }
 
+// =============================
+// SHARE LOADOUT UI
+// =============================
 (function () {
-  // 🔄 Load existing local loadouts
-  if (typeof loadLoadouts === "function") loadLoadouts();
-
-  // =============================
-  // SHARE LOADOUT UI
-  // =============================
-
   const shareBtn = document.querySelector(".share-loadout-btn");
   const shareMenu = document.querySelector(".share-loadout-menu");
   const shareCardContainer = document.querySelector(".share-slide-content");
@@ -969,9 +965,6 @@ if (sharedRaw && sharedFlag === "1") {
   const saveCardContainer = document.querySelector(".save-share-slide-content");
   const cancelSave = document.querySelector(".cancel-save-share-loadout");
   const confirmSave = document.querySelector(".confirm-save-share-btn");
-
-  const toggleBtn = document.querySelector("[data-toggle-loadouts]");
-  const cardSwitcher = document.querySelector(".card-toggle-switch");
 
   // 🟢 OPEN Share Panel
   if (shareBtn && shareMenu && shareCardContainer) {
@@ -1047,11 +1040,13 @@ if (sharedRaw && sharedFlag === "1") {
 
         if (typeof loadLoadouts === "function") loadLoadouts();
 
+        // Clean up URL
         const url = new URL(window.location.href);
         url.searchParams.delete("sharedLoadout");
         url.searchParams.delete("data");
         window.history.replaceState({}, "", url.pathname + url.search);
 
+        // Animate panel out
         handleConfirmationSuccess(".confirm-save-share-btn", ".save-share-loadout-menu");
       });
 
@@ -1067,6 +1062,258 @@ if (sharedRaw && sharedFlag === "1") {
     } catch (err) {
       console.warn("❌ Invalid shared loadout:", err);
     }
+  }
+})();
+
+function tryClickAttachment(selector, wrapperSelector, maxAttempts = 20, delay = 100) {
+  let attempts = 0;
+
+  function isWrapperVisible(wrapperSelector) {
+    const wrapper = document.querySelector(wrapperSelector);
+    if (!wrapper) return false;
+    const style = window.getComputedStyle(wrapper);
+    return style.visibility === "visible" && style.display !== "none" && style.opacity !== "0";
+  }
+
+  function tryFind() {
+    const wrapperVisible = isWrapperVisible(wrapperSelector);
+    if (!wrapperVisible) {
+      attempts++;
+      if (attempts < maxAttempts) {
+        setTimeout(tryFind, delay);
+      } else {
+        console.warn("⚠️ Wrapper never became visible:", wrapperSelector);
+      }
+      return;
+    }
+
+    const item = document.querySelector(selector);
+    if (!item) {
+      attempts++;
+      if (attempts < maxAttempts) {
+        setTimeout(tryFind, delay);
+      } else {
+        console.warn("⚠️ Failed to find attachment after retries:", selector);
+      }
+      return;
+    }
+
+    // ✅ Click the correct inner link block
+    const linkBlock = item.querySelector("a[class^='link-block']");
+    if (linkBlock) {
+      linkBlock.click();
+      console.log("✅ Clicked attachment:", selector);
+    } else {
+      console.warn("⚠️ No clickable link block inside:", selector);
+    }
+  }
+
+  tryFind();
+}
+
+function applyLoadout(loadout) {
+  if (!loadout || !loadout.weapon) return;
+
+  console.log("🎯 Applying loadout (via click simulation):", loadout);
+
+  // Simulate clicking the weapon card
+  const weaponCardBtn = document.querySelector(`.swiper-slide [data-weapon="${loadout.weapon}"]`);
+  if (weaponCardBtn) {
+    weaponCardBtn.click();
+  } else {
+    console.warn("⚠️ Could not find weapon card for:", loadout.weapon);
+  }
+
+// ⏳ Wait for weapon panel animation, then simulate attachment clicks
+setTimeout(() => {
+  simulateAttachmentClicks(loadout);
+}, 500);
+
+  // Global state sync
+  window.currentBaseWeapon = loadout.weapon;
+  window.originalWeaponSlug = loadout.weapon;
+  window.selectedBarrelSlug = loadout.barrel;
+  window.selectedSightSlug = loadout.sight;
+  window.selectedUnderbarrelSlug = loadout.underbarrel;
+
+  // Cosmetic sync
+  if (typeof updateIcons === "function") updateIcons();
+  if (typeof updateBorderColor === "function") updateBorderColor();
+  if (typeof updateDiamonds === "function") updateDiamonds();
+
+  console.log("✅ Loadout fully applied.");
+}
+
+function simulateAttachmentClicks(loadout) {
+  // === BARREL ===
+  if (loadout.barrel) {
+    setTimeout(() => {
+      document.querySelector(".toggle-image-barrel")?.click();
+      setTimeout(() => {
+        const btn = document.querySelector(`.weapon-barrel-item [data-attachment="${loadout.barrel}"]`);
+        if (btn) {
+          btn.click();
+        } else {
+          console.warn("❌ Barrel not found:", loadout.barrel);
+        }
+      }, 300);
+    }, 200);
+  } else {
+if (!loadout.barrel) {
+  setTimeout(() => clickDeselectIcon("barrel"), 200);
+}
+}
+
+  // === SIGHT ===
+  if (loadout.sight) {
+    setTimeout(() => {
+      document.querySelector(".toggle-image-sight")?.click();
+      setTimeout(() => {
+        const btn = document.querySelector(`.weapon-sight-item [data-sight="${loadout.sight}"]`);
+        if (btn) {
+          btn.click();
+        } else {
+          console.warn("❌ Sight not found:", loadout.sight);
+        }
+      }, 300);
+    }, 800);
+  } else {
+if (!loadout.sight) {
+  setTimeout(() => clickDeselectIcon("sight"), 800);
+}
+}
+
+
+  // === UNDERBARREL ===
+  if (loadout.underbarrel) {
+    setTimeout(() => {
+      document.querySelector(".toggle-image-underbarrel")?.click();
+      setTimeout(() => {
+        const btn = document.querySelector(`.weapon-underbarrel-item [data-underbarrel="${loadout.underbarrel}"]`);
+        if (btn) {
+          btn.click();
+        } else {
+          console.warn("❌ Underbarrel not found:", loadout.underbarrel);
+        }
+      }, 300);
+    }, 1400);
+  } else {
+if (!loadout.underbarrel) {
+  setTimeout(() => clickDeselectIcon("underbarrel"), 1400);
+}
+}
+}
+
+function clickDeselectIcon(type) {
+  const icon = document.querySelector(`.selected-${type}-icon`);
+  const clickable = icon?.querySelector("div"); // the cloned clickable wrapper
+  if (clickable) {
+    clickable.click();
+    console.log(`🔄 Deselected ${type} by clicking inside icon container`);
+  } else {
+    console.warn(`⚠️ No clickable clone found for ${type} deselect`);
+  }
+}
+
+// 🔁 Utility: Populate the shared loadout preview card
+function updateSharePreviewCard(loadoutData, targetContainer) {
+  if (!loadoutData || !targetContainer) return;
+
+  const nameTop = targetContainer.querySelector("[data-live-name-top]");
+  const nameBottom = targetContainer.querySelector("[data-live-name-bottom]");
+  const weaponImg = targetContainer.querySelector(".loadout-weapon-img");
+
+  const topIcon = targetContainer.querySelector(".loadout-poker-customization-top img");
+  const bottomIcon = targetContainer.querySelector(".loadout-poker-customization-bottom img");
+
+  const barrelDiamond = targetContainer.querySelector('[data-slot="barrel"]');
+  const sightDiamond = targetContainer.querySelector('[data-slot="sight"]');
+  const underbarrelDiamond = targetContainer.querySelector('[data-slot="underbarrel"]');
+
+  nameTop.textContent = loadoutData.name || "Shared Loadout";
+  nameBottom.textContent = loadoutData.name || "Shared Loadout";
+
+  weaponImg.src = window.weaponImageMap[loadoutData.weapon] || "";
+
+  if (topIcon) topIcon.src = window.pokerIconMap[loadoutData.topIcon] || "";
+  if (bottomIcon) bottomIcon.src = window.pokerIconMap[loadoutData.bottomIcon] || "";
+
+  barrelDiamond.classList.toggle("active", !!loadoutData.barrel);
+  sightDiamond.classList.toggle("active", !!loadoutData.sight);
+  underbarrelDiamond.classList.toggle("active", !!loadoutData.underbarrel);
+}
+
+function handleConfirmationSuccess(buttonSelector, panelSelector) {
+  const button = document.querySelector(buttonSelector);
+  const panel = document.querySelector(panelSelector);
+
+  if (!button || !panel) {
+    console.warn(`⚠️ Could not find ${buttonSelector} or ${panelSelector}`);
+    return;
+  }
+
+  button.addEventListener("click", () => {
+    // 💚 Animate button success
+    button.classList.add("success"); // style with .success in CSS
+    button.textContent = "Success!";
+
+    // ⏳ Fade out panel after 1 sec
+    setTimeout(() => {
+      panel.classList.remove("active");
+      button.classList.remove("success");
+      button.textContent = "Confirm"; // or original label
+    }, 1500);
+  });
+}
+  
+document.addEventListener("DOMContentLoaded", () => {
+  // 🔄 Load existing local loadouts
+  loadLoadouts();
+
+  // 🔗 DOM references
+  const shareMenu = document.querySelector(".share-loadout-menu");
+  const saveShareMenu = document.querySelector(".save-share-loadout-menu");
+
+  const shareBtn = document.querySelector(".share-loadout-btn");
+  const cancelShareBtn = document.querySelector(".cancel-share-loadout");
+  const cancelSaveShareBtn = document.querySelector(".cancel-save-share-loadout");
+
+  const toggleBtn = document.querySelector("[data-toggle-loadouts]");
+  const cardSwitcher = document.querySelector(".card-toggle-switch");
+
+  // 🟢 Show Share Modal
+  if (shareBtn && shareMenu) {
+    shareBtn.addEventListener("click", () => {
+      shareMenu.style.display = "flex";
+      shareMenu.classList.add("active");
+
+      // 🧠 Attach success handler after panel is visible
+      setTimeout(() => {
+        handleConfirmationSuccess(".confirm-share-btn", ".share-loadout-menu");
+      }, 100);
+    });
+  }
+
+  // 🔴 Cancel Share Modal
+  if (cancelShareBtn && shareMenu) {
+    cancelShareBtn.addEventListener("click", () => {
+      shareMenu.style.display = "none";
+      shareMenu.classList.remove("active");
+    });
+  }
+
+  // 🔴 Cancel Save+Share Modal
+  if (cancelSaveShareBtn && saveShareMenu) {
+    cancelSaveShareBtn.addEventListener("click", () => {
+      saveShareMenu.classList.remove("active");
+    });
+  }
+
+  // 🟢 Save+Share Modal opens: hook success
+  if (saveShareMenu) {
+    saveShareMenu.addEventListener("transitionend", () => {
+      handleConfirmationSuccess(".confirm-save-share-btn", ".save-share-loadout-menu");
+    });
   }
 
   // 🔄 Toggle swiper / loadout view
@@ -1096,11 +1343,4 @@ if (sharedRaw && sharedFlag === "1") {
       }
     });
   }
-
-  // 🟢 Save+Share Modal opens: hook success
-  if (saveMenu) {
-    saveMenu.addEventListener("transitionend", () => {
-      handleConfirmationSuccess(".confirm-save-share-btn", ".save-share-loadout-menu");
-    });
-  }
-})();
+});
