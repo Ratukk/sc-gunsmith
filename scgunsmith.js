@@ -951,6 +951,7 @@ if (sharedRaw && sharedFlag === "1") {
   }
 }
 
+  
 // =============================
 // SHARE LOADOUT UI
 // =============================
@@ -1343,3 +1344,4 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 });
+})();
