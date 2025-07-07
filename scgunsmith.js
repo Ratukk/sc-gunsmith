@@ -1,5 +1,5 @@
 function updateShareButtonState() {
-  const btn = document.querySelector(".confirm-share-btn");
+  const btn = document.querySelector(".share-loadout-btn");
   const enabled = window.lastSelectedLoadoutIndex != null;
 
   if (!btn) return;
