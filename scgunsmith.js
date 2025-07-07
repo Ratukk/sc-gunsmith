@@ -15,27 +15,27 @@ function handleConfirmationSuccess(buttonSelector, panelSelector) {
 
   if (!button || !panel) return;
 
- button.addEventListener("click", (e) => {
-  e.preventDefault(); // ✅ This stops unwanted form submission or navigation
+  button.addEventListener("click", () => {
+    // Set success styles
+    button.style.transition = "background-color 0.5s ease";
+    button.style.backgroundColor = "#27ae60"; // ✅ Green
+    button.textContent = "Success";
 
-  // Set success styles
-  button.style.transition = "background-color 0.5s ease";
-  button.style.backgroundColor = "#568836";
-  button.textContent = "Success";
-
-  // Wait 1 second before closing the panel
-  setTimeout(() => {
-    panel.style.transition = "opacity 0.5s ease";
-    panel.style.opacity = "0";
-    panel.style.pointerEvents = "none";
-
+    // Wait 1 second before closing the panel
     setTimeout(() => {
-      panel.style.display = "none";
-      button.style.backgroundColor = "";
-      button.textContent = buttonSelector.includes("share") ? "Copy URL" : "Save";
-    }, 500);
-  }, 1000);
-});
+      panel.style.transition = "opacity 0.5s ease";
+      panel.style.opacity = "0";
+      panel.style.pointerEvents = "none";
+
+      // Reset everything for next time
+      setTimeout(() => {
+        panel.style.display = "none";
+        button.style.backgroundColor = "";
+button.textContent = buttonSelector.includes("share") ? "Copy URL" : "Save";
+      }, 500);
+    }, 1000);
+  });
+}
 
 (function () {
   // 🌐 Global state variables
@@ -951,27 +951,26 @@ if (sharedRaw && sharedFlag === "1") {
   }
 }
 
-  
 // =============================
 // SHARE LOADOUT UI
 // =============================
 (function () {
   const shareBtn = document.querySelector(".share-loadout-btn");
   const shareMenu = document.querySelector(".share-loadout-menu");
-  const shareCardContainer = document.querySelector(".share-slide-content");
+  const shareInner = document.querySelector(".share-loadout-inner");
   const cancelShare = document.querySelector(".cancel-share-loadout");
   const confirmShare = document.querySelector(".confirm-share-btn");
+  const shareCardContainer = document.querySelector(".share-slide-content");
 
   const saveMenu = document.querySelector(".save-share-loadout-menu");
-  const saveCardContainer = document.querySelector(".save-share-slide-content");
   const cancelSave = document.querySelector(".cancel-save-share-loadout");
   const confirmSave = document.querySelector(".confirm-save-share-btn");
+  const saveCardContainer = document.querySelector(".save-share-slide-content");
 
-  // 🟢 OPEN Share Panel
+  // 🔓 OPEN share menu with card preview
   if (shareBtn && shareMenu && shareCardContainer) {
     shareBtn.addEventListener("click", () => {
-      shareMenu.style.display = "flex";
-      shareMenu.classList.add("active");
+      shareMenu.classList.add("show");
 
       const loadouts = JSON.parse(localStorage.getItem("savedLoadouts") || "[]");
       const index = window.lastSelectedLoadoutIndex;
@@ -981,89 +980,86 @@ if (sharedRaw && sharedFlag === "1") {
         shareCardContainer.innerHTML = "";
         shareCardContainer.appendChild(card);
       }
-
-      // 🟢 Hook up confirmation success logic
-      handleConfirmationSuccess(".confirm-share-btn", ".share-loadout-menu");
     });
   }
 
-  // 🔴 CANCEL Share
+  // ❌ CANCEL share
   if (cancelShare) {
     cancelShare.addEventListener("click", () => {
-      shareMenu.style.opacity = "0";
-      shareMenu.style.pointerEvents = "none";
-      setTimeout(() => {
-        shareMenu.style.display = "none";
-        shareMenu.classList.remove("active");
-      }, 500);
+      shareMenu.classList.remove("show");
     });
   }
 
-  // ✅ Generate & copy share URL
+  // ✅ CONFIRM share: generate & copy URL
   if (confirmShare) {
-    confirmShare.addEventListener("click", (e) => {
-      e.preventDefault();
+    confirmShare.addEventListener("click", () => {
       const loadouts = JSON.parse(localStorage.getItem("savedLoadouts") || "[]");
       const index = window.lastSelectedLoadoutIndex;
       if (!loadouts[index]) return;
 
       const data = encodeURIComponent(JSON.stringify(loadouts[index]));
       const url = `${window.location.origin}${window.location.pathname}?sharedLoadout=1&data=${data}`;
-      navigator.clipboard.writeText(url);
+
+      navigator.clipboard.writeText(url).then(() => {
+        alert("🔗 Shareable link copied to clipboard!");
+      });
+
+      shareMenu.classList.remove("show");
     });
   }
 
-  // 🔍 On Page Load: Check for shared loadout
-  const urlParams = new URLSearchParams(window.location.search);
-  const isShared = urlParams.get("sharedLoadout");
-  const raw = urlParams.get("data");
+  // 🔄 CHECK FOR SHARED LOADOUT ON PAGE LOAD
+    const urlParams = new URLSearchParams(window.location.search);
+    const isShared = urlParams.get("sharedLoadout");
+    const raw = urlParams.get("data");
 
-  if (isShared && raw) {
-    try {
-      const loadout = JSON.parse(decodeURIComponent(raw));
-      if (!loadout || !loadout.weapon) throw new Error("Invalid loadout");
+    if (isShared && raw) {
+      try {
+        const loadout = JSON.parse(decodeURIComponent(raw));
+        if (!loadout || !loadout.weapon) throw new Error("Invalid loadout data");
 
-      saveMenu?.classList.add("active");
-      saveMenu.style.display = "flex";
+        saveMenu?.classList.add("show");
+        if (saveCardContainer) {
+          const card = createLoadoutCard(loadout, 999); // temporary index
+          saveCardContainer.innerHTML = "";
+          saveCardContainer.appendChild(card);
+        }
 
-      if (saveCardContainer) {
-        const card = createLoadoutCard(loadout, 999);
-        saveCardContainer.innerHTML = "";
-        saveCardContainer.appendChild(card);
-      }
+        // Save if user confirms
+              confirmSave?.addEventListener("click", () => {
+          const saved = JSON.parse(localStorage.getItem("savedLoadouts") || "[]");
+          saved.push(loadout);
+          localStorage.setItem("savedLoadouts", JSON.stringify(saved));
+          saveMenu.classList.remove("show");
+          alert("✅ Loadout saved!");
+          if (typeof loadLoadouts === "function") loadLoadouts();
+ 
+  const url = new URL(window.location.href);
+  url.searchParams.delete("sharedLoadout");
+  url.searchParams.delete("data");
+  window.history.replaceState({}, "", url.pathname + url.search);
+  console.log("✅ Cleared shared loadout from URL after saving.");
 
-      // ✅ Confirm Save
-      confirmSave?.addEventListener("click", (e) => {
-        e.preventDefault();
-        const saved = JSON.parse(localStorage.getItem("savedLoadouts") || "[]");
-        saved.push(loadout);
-        localStorage.setItem("savedLoadouts", JSON.stringify(saved));
+  if (saveMenu) {
+    saveMenu.classList.add("animate-out");
 
-        if (typeof loadLoadouts === "function") loadLoadouts();
-
-        // Clean up URL
-        const url = new URL(window.location.href);
-        url.searchParams.delete("sharedLoadout");
-        url.searchParams.delete("data");
-        window.history.replaceState({}, "", url.pathname + url.search);
-
-        // Animate panel out
-        handleConfirmationSuccess(".confirm-save-share-btn", ".save-share-loadout-menu");
-      });
-
-      // ❌ Cancel save
-      cancelSave?.addEventListener("click", () => {
-        saveMenu.style.opacity = "0";
-        saveMenu.style.pointerEvents = "none";
-        setTimeout(() => {
-          saveMenu.style.display = "none";
-          saveMenu.classList.remove("active");
-        }, 500);
-      });
-    } catch (err) {
-      console.warn("❌ Invalid shared loadout:", err);
-    }
+    // Wait for the animation to finish before fully hiding
+    setTimeout(() => {
+      saveMenu.classList.remove("show", "active", "animate-out");
+      saveMenu.style.display = "none";
+      console.log("✅ Animated and closed save confirmation panel.");
+    }, 400); // match the transition duration in CSS
   }
+});
+        // Cancel sharing
+        cancelSave?.addEventListener("click", () => {
+          saveMenu.classList.remove("show");
+        });
+      } catch (err) {
+        console.warn("❌ Failed to import shared loadout:", err);
+      }
+    }
+})();
 
 function tryClickAttachment(selector, wrapperSelector, maxAttempts = 20, delay = 100) {
   let attempts = 0;
