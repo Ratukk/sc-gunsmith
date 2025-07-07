@@ -58,6 +58,7 @@ function updateShareButtonState() {
 
   btn.disabled = !enabled;
   btn.style.filter = enabled ? "none" : "grayscale(100%) brightness(61%)";
+  btn.style.pointerEvents = enabled ? "auto" : "none";
 }
 
   // 🚫 Disable scroll while loading
@@ -438,7 +439,8 @@ if (typeof window.lastSelectedLoadoutIndex === "number") {
       window.lastSelectedLoadoutIndex = null;
       window.lastSelectedSlide = null;
       window.currentClonedCard = null;
-
+updateShareButtonState();
+      
       // Remove loadout floating card
       document.querySelectorAll(".weapon-choice-card .floating-card").forEach(card => card.remove());
     }
