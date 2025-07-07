@@ -693,7 +693,6 @@ deleteList?.addEventListener("click", (e) => {
     }
   }
 });
-});
 })();
 
 const nameTopEl = document.querySelector("[data-live-name-top]");
