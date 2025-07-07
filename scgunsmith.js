@@ -1,4 +1,3 @@
-<script>
 (function () {
   // 🌐 Global state variables
   window.selectedBarrelSlug = null;
@@ -696,9 +695,7 @@ deleteList?.addEventListener("click", (e) => {
 });
 });
 })();
-</script>
 
-<script>
 const nameTopEl = document.querySelector("[data-live-name-top]");
 const nameBottomEl = document.querySelector("[data-live-name-bottom]");
 const nameInput = document.querySelector("[data-save-loadout-name]");
@@ -731,9 +728,7 @@ function resizeByCharacterCount(el, inputEl, threshold = 10, smallSize = 9, larg
 // Run for both top and bottom text elements
 resizeByCharacterCount(nameTopEl, nameInput);
 resizeByCharacterCount(nameBottomEl, nameInput);
-</script>
 
-<script>
 (function () {
   // Get container for loadout swiper slides
   const loadoutWrapper = document.querySelector(".loadout-swiper-wrapper");
@@ -1297,4 +1292,3 @@ saveShareMenu.classList.remove("active");
   }
 });
 })();
-</script>
