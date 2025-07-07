@@ -1,5 +1,5 @@
 function updateShareButtonState() {
-  const btn = document.querySelector(".share-loadout-btn");
+  const btn = document.querySelector(".confirm-share-btn");
   const enabled = window.lastSelectedLoadoutIndex != null;
 
   if (!btn) return;
@@ -1244,16 +1244,21 @@ function handleConfirmationSuccess(buttonSelector, panelSelector) {
   const panel = document.querySelector(panelSelector);
 
   if (!button || !panel) {
-    console.warn(`⚠️ Could not find button or panel for ${buttonSelector}, ${panelSelector}`);
+    console.warn(`⚠️ Could not find ${buttonSelector} or ${panelSelector}`);
     return;
   }
 
   button.addEventListener("click", () => {
-    button.classList.add("success"); // Apply a green background
+    // 💚 Animate button success
+    button.classList.add("success"); // style with .success in CSS
     button.textContent = "Success!";
+
+    // ⏳ Fade out panel after 1 sec
     setTimeout(() => {
       panel.classList.remove("active");
-    }, 1000);
+      button.classList.remove("success");
+      button.textContent = "Confirm"; // or original label
+    }, 1500);
   });
 }
   
@@ -1261,7 +1266,7 @@ document.addEventListener("DOMContentLoaded", () => {
   // 🔄 Load existing local loadouts
   loadLoadouts();
 
-  // 🔗 DOM element references
+  // 🔗 DOM references
   const shareMenu = document.querySelector(".share-loadout-menu");
   const saveShareMenu = document.querySelector(".save-share-loadout-menu");
 
@@ -1272,20 +1277,20 @@ document.addEventListener("DOMContentLoaded", () => {
   const toggleBtn = document.querySelector("[data-toggle-loadouts]");
   const cardSwitcher = document.querySelector(".card-toggle-switch");
 
-  // 🟢 Share Modal Open
+  // 🟢 Show Share Modal
   if (shareBtn && shareMenu) {
     shareBtn.addEventListener("click", () => {
       shareMenu.style.display = "flex";
       shareMenu.classList.add("active");
 
-      // ✅ Delay running until after modal is visible
+      // 🧠 Attach success handler after panel is visible
       setTimeout(() => {
-        handleConfirmationSuccess(".confirm-share-btn", ".confirm-share-loadout");
-      }, 200);
+        handleConfirmationSuccess(".confirm-share-btn", ".share-loadout-menu");
+      }, 100);
     });
   }
 
-  // 🔴 Share Modal Close
+  // 🔴 Cancel Share Modal
   if (cancelShareBtn && shareMenu) {
     cancelShareBtn.addEventListener("click", () => {
       shareMenu.style.display = "none";
@@ -1300,7 +1305,14 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // 🔄 Toggle between swiper & loadout cards
+  // 🟢 Save+Share Modal opens: hook success
+  if (saveShareMenu) {
+    saveShareMenu.addEventListener("transitionend", () => {
+      handleConfirmationSuccess(".confirm-save-share-btn", ".save-share-loadout-menu");
+    });
+  }
+
+  // 🔄 Toggle swiper / loadout view
   if (toggleBtn && cardSwitcher) {
     toggleBtn.addEventListener("click", () => {
       const weaponSwiper = document.querySelector(".swiper-wrapper");
@@ -1310,7 +1322,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
       const showingLoadouts = loadoutSwiper.style.display === "flex";
       cardSwitcher.classList.toggle("flipped", !showingLoadouts);
-
       loadoutSwiper.style.display = showingLoadouts ? "none" : "flex";
       weaponSwiper.style.display = showingLoadouts ? "flex" : "none";
 
@@ -1326,13 +1337,6 @@ document.addEventListener("DOMContentLoaded", () => {
           }, i * 80);
         });
       }
-    });
-  }
-
-  // 🟢 Save+Share Modal: Wait for render before attaching handler
-  if (saveShareMenu) {
-    saveShareMenu.addEventListener("transitionend", () => {
-      handleConfirmationSuccess(".confirm-save-share-button", ".confirm-save-loadout");
     });
   }
 });
