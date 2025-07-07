@@ -1000,8 +1000,7 @@ if (sharedRaw && sharedFlag === "1") {
       const data = encodeURIComponent(JSON.stringify(loadouts[index]));
       const url = `${window.location.origin}${window.location.pathname}?sharedLoadout=1&data=${data}`;
 
-      navigator.clipboard.writeText(url).then(() => {
-        alert("🔗 Shareable link copied to clipboard!");
+      navigator.clipboard.writeText(url);
       });
 
       shareMenu.classList.remove("show");
@@ -1031,7 +1030,6 @@ if (sharedRaw && sharedFlag === "1") {
           saved.push(loadout);
           localStorage.setItem("savedLoadouts", JSON.stringify(saved));
           saveMenu.classList.remove("show");
-          alert("✅ Loadout saved!");
           if (typeof loadLoadouts === "function") loadLoadouts();
  
   const url = new URL(window.location.href);
