@@ -1,3 +1,14 @@
+function updateShareButtonState() {
+  const btn = document.querySelector(".share-loadout-btn");
+  const enabled = window.lastSelectedLoadoutIndex != null;
+
+  if (!btn) return;
+
+  btn.disabled = !enabled;
+  btn.style.filter = enabled ? "none" : "grayscale(100%) brightness(61%)";
+  btn.style.pointerEvents = enabled ? "auto" : "none";
+}
+
 (function () {
   // 🌐 Global state variables
   window.selectedBarrelSlug = null;
@@ -49,17 +60,6 @@ window.pokerIconMap = {
   "ammo-minus-bottom": "https://cdn.prod.website-files.com/68390e8290cb63217295e99d/686ae0edb34956d69eb680b8_ammo-icon-minus-small-bottom.png",
 
 };
-
-function updateShareButtonState() {
-  const btn = document.querySelector(".share-loadout-btn");
-  const enabled = window.lastSelectedLoadoutIndex != null;
-
-  if (!btn) return;
-
-  btn.disabled = !enabled;
-  btn.style.filter = enabled ? "none" : "grayscale(100%) brightness(61%)";
-  btn.style.pointerEvents = enabled ? "auto" : "none";
-}
 
   // 🚫 Disable scroll while loading
   document.documentElement.style.overflow = 'hidden';
