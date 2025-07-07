@@ -1238,6 +1238,28 @@ function updateSharePreviewCard(loadoutData, targetContainer) {
   underbarrelDiamond.classList.toggle("active", !!loadoutData.underbarrel);
 }
 
+function handleConfirmationSuccess(buttonSelector, panelSelector) {
+  const button = document.querySelector(buttonSelector);
+  const panel = document.querySelector(panelSelector);
+
+  if (!button || !panel) {
+    console.warn(`⚠️ Could not find button or panel for ${buttonSelector}, ${panelSelector}`);
+    return;
+  }
+
+  button.addEventListener("click", () => {
+    // ✅ Visual feedback
+    button.textContent = "Success";
+    button.style.backgroundColor = "#4CAF50"; // green
+    button.style.transition = "background-color 0.5s ease";
+
+    // ✅ Close after 1 second
+    setTimeout(() => {
+      panel.classList.remove("active");
+    }, 1000);
+  });
+}
+  
 document.addEventListener("DOMContentLoaded", () => {
   // 🔄 Load existing local loadouts
   loadLoadouts();
