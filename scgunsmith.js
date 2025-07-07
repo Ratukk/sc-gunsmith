@@ -1063,7 +1063,6 @@ if (sharedRaw && sharedFlag === "1") {
       console.warn("❌ Invalid shared loadout:", err);
     }
   }
-})();
 
 function tryClickAttachment(selector, wrapperSelector, maxAttempts = 20, delay = 100) {
   let attempts = 0;
@@ -1344,3 +1343,4 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 });
+})();
