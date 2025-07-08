@@ -138,6 +138,21 @@ document.addEventListener("DOMContentLoaded", function () {
     });
   }
 
+ // ✅ NEW: Temporary cursor change on click
+  const clickableIcons = document.querySelectorAll(
+    ".selected-barrel-icon, .selected-sight-icon, .selected-underbarrel-icon"
+  );
+
+  clickableIcons.forEach((icon) => {
+    icon.addEventListener("click", () => {
+      icon.classList.add("clicked-trash-cursor");
+
+      setTimeout(() => {
+        icon.classList.remove("clicked-trash-cursor");
+      }, 500); // 0.5 seconds
+    });
+  });
+  
   // ... any more logic that touches DOM should also go here
 });
 
@@ -1336,6 +1351,4 @@ document.addEventListener("DOMContentLoaded", () => {
         });
       }
     });
-  }
-});
-})();
+
