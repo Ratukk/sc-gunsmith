@@ -1,3 +1,9 @@
+  const locationDivs = {
+    ".weapon-barrel-wrapper": ".attachment-location-div",
+    ".weapon-sight-wrapper": ".sight-location-div",
+    ".weapon-underbarrel-wrapper": ".underbarrel-location-div"
+  };
+
 function updateShareButtonState() {
   const btn = document.querySelector(".share-loadout-btn");
   const enabled = window.lastSelectedLoadoutIndex != null;
@@ -124,11 +130,6 @@ document.addEventListener("DOMContentLoaded", function () {
   updateShareButtonState(); // ✅ Safe to call here
 
   const weaponImageMap = {}; // If needed locally
-  const locationDivs = {
-    ".weapon-barrel-wrapper": ".attachment-location-div",
-    ".weapon-sight-wrapper": ".sight-location-div",
-    ".weapon-underbarrel-wrapper": ".underbarrel-location-div"
-  };
 
   const switcher = document.querySelector(".card-toggle-switch");
   if (switcher) {
