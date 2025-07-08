@@ -1351,4 +1351,6 @@ document.addEventListener("DOMContentLoaded", () => {
         });
       }
     });
-
+  }
+});
+})();
