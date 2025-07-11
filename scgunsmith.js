@@ -1478,81 +1478,73 @@ window.Webflow.push(() => {
 });
 
 document.addEventListener("DOMContentLoaded", () => {
-  const toggleNotesBtn = document.querySelector(".toggle-notes-button");
+  const notesToggleBtn = document.querySelector(".toggle-notes-button");
   const notesMenu = document.querySelector(".notes-menu");
   const notesInner = document.querySelector(".notes-inner");
   const hideNotesBtn = document.querySelector(".hide-notes-menu-btn");
   const notesTextarea = document.querySelector(".notes-textarea");
+  const dragArea = document.querySelector(".notes-menu-drag-area");
+  const autosaveIndicator = document.querySelector(".notes-autosave-indicator");
 
-  if (!toggleNotesBtn || !notesMenu || !notesInner || !hideNotesBtn || !notesTextarea) {
-    console.warn("⚠️ One or more notes elements missing from DOM.");
+  if (!notesToggleBtn || !notesMenu || !notesInner || !hideNotesBtn || !notesTextarea || !dragArea) {
+    console.warn("⚠️ Notes UI elements missing.");
     return;
   }
 
-  // 🔄 Load saved notes
+  // ✅ Load saved notes on page load
   const savedNotes = localStorage.getItem("userNotes");
   if (savedNotes) {
     notesTextarea.value = savedNotes;
   }
 
-  // 💾 Save notes on input
-  notesTextarea.addEventListener("input", () => {
-    localStorage.setItem("userNotes", notesTextarea.value);
-  });
-
-  // 🟢 Show Notes Menu
-  toggleNotesBtn.addEventListener("click", () => {
+  // ✅ Toggle visibility
+  notesToggleBtn.addEventListener("click", () => {
     notesMenu.style.display = "flex";
     notesMenu.classList.add("active");
   });
 
-  // 🔴 Hide Notes Menu
   hideNotesBtn.addEventListener("click", () => {
     notesMenu.classList.remove("active");
     setTimeout(() => {
       notesMenu.style.display = "none";
-    }, 300); // Optional delay for animation
+    }, 300);
   });
 
-  // 🟦 Make Notes Menu Draggable via .notes-menu-drag-area
-  makeElementDraggable(notesInner, ".notes-menu-drag-area");
+  // ✅ Dragging (only from .notes-menu-drag-area)
+  let isDragging = false;
+  let offsetX = 0;
+  let offsetY = 0;
+
+  dragArea.addEventListener("mousedown", (e) => {
+    isDragging = true;
+    const rect = notesMenu.getBoundingClientRect();
+    offsetX = e.clientX - rect.left;
+    offsetY = e.clientY - rect.top;
+    document.body.style.userSelect = "none";
+  });
+
+  document.addEventListener("mousemove", (e) => {
+    if (!isDragging) return;
+    notesMenu.style.left = `${e.clientX - offsetX}px`;
+    notesMenu.style.top = `${e.clientY - offsetY}px`;
+  });
+
+  document.addEventListener("mouseup", () => {
+    isDragging = false;
+    document.body.style.userSelect = "";
+  });
+
+  // ✅ Auto-save with indicator
+  let autosaveTimeout;
+  notesTextarea.addEventListener("input", () => {
+    localStorage.setItem("userNotes", notesTextarea.value);
+
+    if (autosaveIndicator) {
+      autosaveIndicator.classList.add("show");
+      clearTimeout(autosaveTimeout);
+      autosaveTimeout = setTimeout(() => {
+        autosaveIndicator.classList.remove("show");
+      }, 1200);
+    }
+  });
 });
-
-function makeElementDraggable(el, handleSelector) {
-  const dragHandle = el.querySelector(handleSelector);
-  if (!dragHandle) {
-    console.warn(`⚠️ Drag handle "${handleSelector}" not found inside element.`);
-    return;
-  }
-
-  let posX = 0, posY = 0, mouseX = 0, mouseY = 0;
-
-  el.style.position = "absolute";
-
-  dragHandle.style.cursor = "move";
-  dragHandle.addEventListener("mousedown", dragMouseDown);
-
-  function dragMouseDown(e) {
-    e.preventDefault();
-    mouseX = e.clientX;
-    mouseY = e.clientY;
-    document.addEventListener("mousemove", elementDrag);
-    document.addEventListener("mouseup", stopDrag);
-  }
-
-  function elementDrag(e) {
-    e.preventDefault();
-    posX = mouseX - e.clientX;
-    posY = mouseY - e.clientY;
-    mouseX = e.clientX;
-    mouseY = e.clientY;
-
-    el.style.top = (el.offsetTop - posY) + "px";
-    el.style.left = (el.offsetLeft - posX) + "px";
-  }
-
-  function stopDrag() {
-    document.removeEventListener("mousemove", elementDrag);
-    document.removeEventListener("mouseup", stopDrag);
-  }
-}
