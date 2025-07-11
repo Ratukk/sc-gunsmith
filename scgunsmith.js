@@ -934,8 +934,8 @@ div.addEventListener("mouseleave", () => {
   return `<img src="${imageUrl}" alt="${iconKey}" class="active-poker-icon-${position}" loading="lazy" />`;
 }
 
-  // Load all saved loadouts from localStorage and render them
- async function loadLoadouts() {
+// Load and render saved loadouts
+async function loadLoadouts() {
   const saved = await window.getSavedLoadouts();
   loadoutWrapper.innerHTML = ""; // clear existing
 
@@ -949,6 +949,29 @@ div.addEventListener("mouseleave", () => {
     loadoutWrapper.appendChild(card);
   });
 }
+
+// Wait until window.getSavedLoadouts is defined, then load
+function waitForHelperAndLoad() {
+  const maxTries = 30;
+  let tries = 0;
+
+  function check() {
+    if (typeof window.getSavedLoadouts === "function") {
+      console.log("✅ getSavedLoadouts found, loading loadouts...");
+      loadLoadouts();
+    } else if (tries++ < maxTries) {
+      console.log("⏳ Waiting for getSavedLoadouts...");
+      setTimeout(check, 100);
+    } else {
+      console.warn("⚠️ getSavedLoadouts not available after retries");
+    }
+  }
+
+  check();
+}
+
+// Call this instead of loadLoadouts() directly
+waitForHelperAndLoad();
 
 // ✅ DETECT & PREVIEW SHARED LOADOUT
 const urlParams = new URLSearchParams(window.location.search);
