@@ -1357,52 +1357,45 @@ document.addEventListener("DOMContentLoaded", () => {
 
 document.addEventListener("DOMContentLoaded", () => {
   const toggleBtn = document.querySelector(".toggle-calculator-button");
-  const calculatorMenu = document.querySelector(".calculator-menu");
+  const calculator = document.querySelector(".calculator-menu-inner");
   const hideBtn = document.querySelector(".hide-calculator-menu-btn");
 
   const inputDisplay = document.querySelector(".entered-numbers-block");
   const outputDisplay = document.querySelector(".calculated-numbers-output-block");
 
-  const calculatorInner = document.querySelector(".calculator-menu-inner");
-
   let currentInput = "";
 
   // ✅ Toggle calculator show/hide
-  if (toggleBtn) {
-    toggleBtn.addEventListener("click", () => {
-      calculatorMenu.style.display = calculatorMenu.style.display === "flex" ? "none" : "flex";
-    });
-  }
+  toggleBtn?.addEventListener("click", () => {
+    calculator.style.display = calculator.style.display === "flex" ? "none" : "flex";
+  });
 
-  if (hideBtn) {
-    hideBtn.addEventListener("click", () => {
-      calculatorMenu.style.display = "none";
-    });
-  }
+  hideBtn?.addEventListener("click", () => {
+    calculator.style.display = "none";
+  });
 
-  // ✅ Drag functionality
-  if (calculatorInner) {
-    let isDragging = false, offsetX = 0, offsetY = 0;
+  // ✅ Drag functionality on the calculator itself
+  let isDragging = false, offsetX = 0, offsetY = 0;
 
-    calculatorInner.addEventListener("mousedown", (e) => {
-      isDragging = true;
-      offsetX = e.clientX - calculatorMenu.offsetLeft;
-      offsetY = e.clientY - calculatorMenu.offsetTop;
-      calculatorMenu.style.position = "absolute";
-      calculatorMenu.style.zIndex = "9999";
-    });
+  calculator?.addEventListener("mousedown", (e) => {
+    if (e.target.closest(".calculator-buttons")) return; // don't drag from buttons
+    isDragging = true;
+    offsetX = e.clientX - calculator.offsetLeft;
+    offsetY = e.clientY - calculator.offsetTop;
+    calculator.style.position = "absolute";
+    calculator.style.zIndex = "9999";
+  });
 
-    document.addEventListener("mousemove", (e) => {
-      if (isDragging) {
-        calculatorMenu.style.left = `${e.clientX - offsetX}px`;
-        calculatorMenu.style.top = `${e.clientY - offsetY}px`;
-      }
-    });
+  document.addEventListener("mousemove", (e) => {
+    if (isDragging) {
+      calculator.style.left = `${e.clientX - offsetX}px`;
+      calculator.style.top = `${e.clientY - offsetY}px`;
+    }
+  });
 
-    document.addEventListener("mouseup", () => {
-      isDragging = false;
-    });
-  }
+  document.addEventListener("mouseup", () => {
+    isDragging = false;
+  });
 
   // ✅ Button logic
   const buttonMap = [
