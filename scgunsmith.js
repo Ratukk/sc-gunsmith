@@ -674,9 +674,9 @@ previewImageLocked = false; // 🔓 Allow 1 update when panel is opened
   const name = input.value?.trim() || "Unnamed Loadout";
   currentLoadout.name = name;
   // Save to localStorage
-  let saved = JSON.parse(localStorage.getItem("savedLoadouts") || "[]");
+  let saved = await window.getSavedLoadouts();
   saved.push({ ...currentLoadout });
-  localStorage.setItem("savedLoadouts", JSON.stringify(saved));
+ await window.setSavedLoadouts(loadouts);
   savePanel.style.display = "none";
 
   // Optionally clear input
@@ -693,7 +693,7 @@ const deleteList = document.querySelector(".loadout-delete-list");
 const cancelDeleteBtn = document.querySelector(".cancel-delete-loadout");
 
 function openDeleteMenu() {
-  const saved = JSON.parse(localStorage.getItem("savedLoadouts") || "[]");
+  const saved = await window.getSavedLoadouts();
 
   deleteList.innerHTML = ""; // Clear old list
 
@@ -725,10 +725,10 @@ cancelDeleteBtn?.addEventListener("click", closeDeleteMenu);
 deleteList?.addEventListener("click", (e) => {
   if (e.target.classList.contains("confirm-delete-btn")) {
     const index = parseInt(e.target.getAttribute("data-delete-index"));
-    let saved = JSON.parse(localStorage.getItem("savedLoadouts") || "[]");
+    let saved = await window.getSavedLoadouts();
     if (index >= 0 && index < saved.length) {
       saved.splice(index, 1);
-      localStorage.setItem("savedLoadouts", JSON.stringify(saved));
+      await window.setSavedLoadouts(loadouts);
       console.log(`🗑️ Deleted loadout at index ${index}`);
       openDeleteMenu(); // Refresh list
       if (typeof loadLoadouts === "function") loadLoadouts(); // optional
@@ -929,7 +929,7 @@ div.addEventListener("mouseleave", () => {
 
   // Load all saved loadouts from localStorage and render them
   function loadLoadouts() {
-    const saved = JSON.parse(localStorage.getItem("savedLoadouts") || "[]");
+    const saved = await window.getSavedLoadouts();
     loadoutWrapper.innerHTML = ""; // clear existing
 
     if (!saved.length) {
@@ -988,8 +988,15 @@ if (sharedRaw && sharedFlag === "1") {
     shareBtn.addEventListener("click", () => {
       shareMenu.classList.add("show");
 
-      const loadouts = JSON.parse(localStorage.getItem("savedLoadouts") || "[]");
-      const index = window.lastSelectedLoadoutIndex;
+(async () => {
+  const loadouts = await window.getSavedLoadouts();
+  const index = window.lastSelectedLoadoutIndex;
+  if (!loadouts[index]) return;
+
+  const data = encodeURIComponent(JSON.stringify(loadouts[index]));
+  const url = `${window.location.origin}${window.location.pathname}?sharedLoadout=1&data=${data}`;
+  navigator.clipboard.writeText(url);
+})();
 
       if (loadouts[index]) {
         const card = createLoadoutCard(loadouts[index], index);
@@ -1008,15 +1015,15 @@ if (sharedRaw && sharedFlag === "1") {
 
 // ✅ CONFIRM share: generate & copy URL
 if (confirmShare) {
-  confirmShare.addEventListener("click", () => {
-    const loadouts = JSON.parse(localStorage.getItem("savedLoadouts") || "[]");
+  confirmShare.addEventListener("click", async () => {
+    const loadouts = await window.getSavedLoadouts(); // 🔁 Replaces localStorage
     const index = window.lastSelectedLoadoutIndex;
     if (!loadouts[index]) return;
 
     const data = encodeURIComponent(JSON.stringify(loadouts[index]));
     const url = `${window.location.origin}${window.location.pathname}?sharedLoadout=1&data=${data}`;
 
-    navigator.clipboard.writeText(url); // 🧼 Alert removed, nothing added
+    navigator.clipboard.writeText(url); // 📋 Copy to clipboard
 
     shareMenu.classList.remove("show");
   });
@@ -1041,9 +1048,9 @@ if (confirmShare) {
 
         // Save if user confirms
               confirmSave?.addEventListener("click", () => {
-          const saved = JSON.parse(localStorage.getItem("savedLoadouts") || "[]");
+          const saved = await window.getSavedLoadouts();
           saved.push(loadout);
-          localStorage.setItem("savedLoadouts", JSON.stringify(saved));
+          await window.setSavedLoadouts(loadouts);
           saveMenu.classList.remove("show");
           if (typeof loadLoadouts === "function") loadLoadouts();
  
