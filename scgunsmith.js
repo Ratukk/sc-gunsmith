@@ -1355,66 +1355,67 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 })();
 
-window.Webflow ||= [];
-window.Webflow.push(function () {
-  const calcToggleBtn = document.querySelector(".toggle-calculator-button");
-  const calculatorWrapper = document.querySelector(".calculator-menu");
-  const calculator = document.querySelector(".calculator-menu-inner");
+function initializeCalculator() {
+  const calculatorWrapper = document.querySelector(".calculator-menu-inner");
+  const calculatorContainer = document.querySelector(".calculator-menu");
+  const toggleBtn = document.querySelector(".toggle-calculator-button");
   const hideBtn = document.querySelector(".hide-calculator-menu-btn");
-  const inputBlock = document.querySelector(".entered-numbers-block");
+  const enteredBlock = document.querySelector(".entered-numbers-block");
   const outputBlock = document.querySelector(".calculated-numbers-output-block");
 
-  if (!calcToggleBtn || !calculator || !hideBtn || !inputBlock || !outputBlock) {
+  if (!calculatorWrapper || !calculatorContainer || !toggleBtn || !hideBtn || !enteredBlock || !outputBlock) {
     console.warn("⚠️ Calculator elements missing from DOM (Webflow-ready context).");
     return;
   }
 
-  console.log("✅ Calculator initialized");
-
-  calculatorWrapper.style.display = "none";
-
-  calcToggleBtn.addEventListener("click", (e) => {
+  // Show/hide toggle
+  toggleBtn.addEventListener("click", (e) => {
     e.preventDefault();
-    calculatorWrapper.style.display =
-      calculatorWrapper.style.display === "none" ? "flex" : "none";
+    calculatorContainer.style.display =
+      calculatorContainer.style.display === "none" ? "flex" : "none";
   });
 
+  // Hide button inside calculator
   hideBtn.addEventListener("click", () => {
-    calculatorWrapper.style.display = "none";
+    calculatorContainer.style.display = "none";
   });
 
-  // Dragging
-  let isDragging = false, offsetX, offsetY;
+  // Draggable logic
+  let isDragging = false, offsetX = 0, offsetY = 0;
 
-  calculator.addEventListener("mousedown", (e) => {
-    if (!e.target.classList.contains("calculator-menu-inner")) return;
+  calculatorContainer.addEventListener("mousedown", (e) => {
+    if (!e.target.closest(".calculator-menu-inner")) return;
     isDragging = true;
-    const rect = calculator.getBoundingClientRect();
-    offsetX = e.clientX - rect.left;
-    offsetY = e.clientY - rect.top;
-    calculator.style.position = "absolute";
+    offsetX = e.clientX - calculatorContainer.offsetLeft;
+    offsetY = e.clientY - calculatorContainer.offsetTop;
+    calculatorContainer.style.cursor = "move";
   });
 
   document.addEventListener("mousemove", (e) => {
-    if (!isDragging) return;
-    calculator.style.left = `${e.clientX - offsetX}px`;
-    calculator.style.top = `${e.clientY - offsetY}px`;
+    if (isDragging) {
+      calculatorContainer.style.left = `${e.clientX - offsetX}px`;
+      calculatorContainer.style.top = `${e.clientY - offsetY}px`;
+    }
   });
 
   document.addEventListener("mouseup", () => {
     isDragging = false;
+    calculatorContainer.style.cursor = "default";
   });
 
-  // Input & display logic
+  // Input logic
   let input = "";
 
   function updateDisplay() {
-    inputBlock.textContent = input;
+    enteredBlock.textContent = input || "0";
+  }
+
+  function calculateResult() {
     try {
-      const sanitized = input.replace(/[^-()\d/*+.]/g, '');
-      const result = Function(`return (${sanitized})`)();
-      outputBlock.textContent = isNaN(result) ? "" : result;
-    } catch {
+      const sanitized = input.replace(/×/g, "*").replace(/÷/g, "/");
+      const result = eval(sanitized);
+      outputBlock.textContent = result ?? "";
+    } catch (err) {
       outputBlock.textContent = "Error";
     }
   }
@@ -1430,14 +1431,14 @@ window.Webflow.push(function () {
     "calculator-7-btn": "7",
     "calculator-8-btn": "8",
     "calculator-9-btn": "9",
-    "calculator-decimal-point-btn": ".",
     "calculator-plus-btn": "+",
     "calculator-minus-btn": "-",
-    "calculator-divide-btn": "/",
     "calculator-multiply-btn": "*",
+    "calculator-divide-btn": "/",
+    "calculator-decimal-point-btn": ".",
     "calculator-parentheses1-btn": "(",
     "calculator-parentheses2-btn": ")",
-    "calculator-percent-btn": "/100"
+    "calculator-percent-btn": "%",
   };
 
   Object.entries(buttonMap).forEach(([className, value]) => {
@@ -1450,22 +1451,28 @@ window.Webflow.push(function () {
     }
   });
 
-  const equalsBtn = document.querySelector(".calculator-equals-btn");
-  equalsBtn?.addEventListener("click", () => {
-    try {
-      const sanitized = input.replace(/[^-()\d/*+.]/g, '');
-      const result = Function(`return (${sanitized})`)();
-      outputBlock.textContent = isNaN(result) ? "Error" : result;
-      input = result.toString();
-      updateDisplay();
-    } catch {
-      outputBlock.textContent = "Error";
-    }
-  });
-
   const backspaceBtn = document.querySelector(".calculator-backspace-btn");
-  backspaceBtn?.addEventListener("click", () => {
-    input = input.slice(0, -1);
-    updateDisplay();
-  });
+  if (backspaceBtn) {
+    backspaceBtn.addEventListener("click", () => {
+      input = input.slice(0, -1);
+      updateDisplay();
+    });
+  }
+
+  const equalsBtn = document.querySelector(".calculator-equals-btn");
+  if (equalsBtn) {
+    equalsBtn.addEventListener("click", () => {
+      calculateResult();
+    });
+  }
+
+  // Init state
+  calculatorContainer.style.display = "none";
+  updateDisplay();
+}
+
+// 🧠 Run after Webflow finishes loading everything
+window.Webflow ||= [];
+window.Webflow.push(() => {
+  initializeCalculator();
 });
