@@ -1367,20 +1367,20 @@ document.addEventListener("DOMContentLoaded", () => {
 
   let currentInput = "";
 
-  // Show/Hide toggle
-  if (toggleBtn && calculatorMenu) {
+  // ✅ Toggle calculator show/hide
+  if (toggleBtn) {
     toggleBtn.addEventListener("click", () => {
       calculatorMenu.style.display = calculatorMenu.style.display === "flex" ? "none" : "flex";
     });
   }
 
-  if (hideBtn && calculatorMenu) {
+  if (hideBtn) {
     hideBtn.addEventListener("click", () => {
       calculatorMenu.style.display = "none";
     });
   }
 
-  // Drag logic
+  // ✅ Drag functionality
   if (calculatorInner) {
     let isDragging = false, offsetX = 0, offsetY = 0;
 
@@ -1388,24 +1388,23 @@ document.addEventListener("DOMContentLoaded", () => {
       isDragging = true;
       offsetX = e.clientX - calculatorMenu.offsetLeft;
       offsetY = e.clientY - calculatorMenu.offsetTop;
-      calculatorInner.style.cursor = "move";
+      calculatorMenu.style.position = "absolute";
+      calculatorMenu.style.zIndex = "9999";
     });
 
     document.addEventListener("mousemove", (e) => {
       if (isDragging) {
         calculatorMenu.style.left = `${e.clientX - offsetX}px`;
         calculatorMenu.style.top = `${e.clientY - offsetY}px`;
-        calculatorMenu.style.position = "absolute";
       }
     });
 
     document.addEventListener("mouseup", () => {
       isDragging = false;
-      calculatorInner.style.cursor = "default";
     });
   }
 
-  // Button mappings
+  // ✅ Button logic
   const buttonMap = [
     { class: "calculator-parentheses1-btn", value: "(" },
     { class: "calculator-parentheses2-btn", value: ")" },
@@ -1438,11 +1437,10 @@ document.addEventListener("DOMContentLoaded", () => {
         currentInput = currentInput.slice(0, -1);
       } else if (value === "EVAL") {
         try {
-          // Replace percent with *0.01 for JS eval
           const safeInput = currentInput.replace(/%/g, "*0.01");
           const result = eval(safeInput);
           outputDisplay.textContent = result ?? "0";
-        } catch (e) {
+        } catch {
           outputDisplay.textContent = "Error";
         }
       } else {
