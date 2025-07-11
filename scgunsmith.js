@@ -1311,8 +1311,7 @@ function handleConfirmationSuccess(buttonSelector, panelSelector) {
 }
   
 document.addEventListener("DOMContentLoaded", () => {
-  // 🔄 Load existing local loadouts
-  loadLoadouts();
+  waitForHelperAndLoad();
 
   // 🔗 DOM references
   const shareMenu = document.querySelector(".share-loadout-menu");
