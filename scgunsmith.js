@@ -1357,90 +1357,118 @@ document.addEventListener("DOMContentLoaded", () => {
 
 document.addEventListener("DOMContentLoaded", () => {
   const toggleBtn = document.querySelector(".toggle-calculator-button");
+  const calculatorWrapper = document.querySelector(".calculator-menu");
   const calculator = document.querySelector(".calculator-menu-inner");
   const hideBtn = document.querySelector(".hide-calculator-menu-btn");
+  const inputBlock = document.querySelector(".entered-numbers-block");
+  const outputBlock = document.querySelector(".calculated-numbers-output-block");
 
-  const inputDisplay = document.querySelector(".entered-numbers-block");
-  const outputDisplay = document.querySelector(".calculated-numbers-output-block");
+  if (!toggleBtn || !calculator || !hideBtn || !inputBlock || !outputBlock) {
+    console.warn("⚠️ Calculator elements missing from DOM");
+    return;
+  }
 
-  let currentInput = "";
+  // Start hidden
+  calculatorWrapper.style.display = "none";
 
-  // ✅ Toggle calculator show/hide
-  toggleBtn?.addEventListener("click", () => {
-    calculator.style.display = calculator.style.display === "flex" ? "none" : "flex";
+  // Toggle calculator on button click
+  toggleBtn.addEventListener("click", (e) => {
+    e.preventDefault(); // Important for Link Blocks!
+    calculatorWrapper.style.display =
+      calculatorWrapper.style.display === "none" ? "flex" : "none";
   });
 
-  hideBtn?.addEventListener("click", () => {
-    calculator.style.display = "none";
+  // Hide calculator
+  hideBtn.addEventListener("click", () => {
+    calculatorWrapper.style.display = "none";
   });
 
-  // ✅ Drag functionality on the calculator itself
-  let isDragging = false, offsetX = 0, offsetY = 0;
+  // Drag to move calculator
+  let isDragging = false;
+  let offsetX, offsetY;
 
-  calculator?.addEventListener("mousedown", (e) => {
-    if (e.target.closest(".calculator-buttons")) return; // don't drag from buttons
+  calculator.addEventListener("mousedown", (e) => {
+    if (!e.target.classList.contains("calculator-menu-inner")) return;
     isDragging = true;
-    offsetX = e.clientX - calculator.offsetLeft;
-    offsetY = e.clientY - calculator.offsetTop;
+    const rect = calculator.getBoundingClientRect();
+    offsetX = e.clientX - rect.left;
+    offsetY = e.clientY - rect.top;
     calculator.style.position = "absolute";
-    calculator.style.zIndex = "9999";
   });
 
   document.addEventListener("mousemove", (e) => {
-    if (isDragging) {
-      calculator.style.left = `${e.clientX - offsetX}px`;
-      calculator.style.top = `${e.clientY - offsetY}px`;
-    }
+    if (!isDragging) return;
+    calculator.style.left = `${e.clientX - offsetX}px`;
+    calculator.style.top = `${e.clientY - offsetY}px`;
   });
 
   document.addEventListener("mouseup", () => {
     isDragging = false;
   });
 
-  // ✅ Button logic
-  const buttonMap = [
-    { class: "calculator-parentheses1-btn", value: "(" },
-    { class: "calculator-parentheses2-btn", value: ")" },
-    { class: "calculator-percent-btn", value: "%" },
-    { class: "calculator-backspace-btn", value: "BACK" },
-    { class: "calculator-7-btn", value: "7" },
-    { class: "calculator-8-btn", value: "8" },
-    { class: "calculator-9-btn", value: "9" },
-    { class: "calculator-divide-btn", value: "/" },
-    { class: "calculator-4-btn", value: "4" },
-    { class: "calculator-5-btn", value: "5" },
-    { class: "calculator-6-btn", value: "6" },
-    { class: "calculator-multiply-btn", value: "*" },
-    { class: "calculator-1-btn", value: "1" },
-    { class: "calculator-2-btn", value: "2" },
-    { class: "calculator-3-btn", value: "3" },
-    { class: "calculator-minus-btn", value: "-" },
-    { class: "calculator-0-btn", value: "0" },
-    { class: "calculator-decimal-point-btn", value: "." },
-    { class: "calculator-equals-btn", value: "EVAL" },
-    { class: "calculator-plus-btn", value: "+" },
-  ];
+  // Calculator logic
+  let input = "";
 
-  buttonMap.forEach(({ class: className, value }) => {
+  function updateDisplay() {
+    inputBlock.textContent = input;
+    try {
+      const sanitized = input.replace(/[^-()\d/*+.]/g, '');
+      const result = Function(`return (${sanitized})`)();
+      outputBlock.textContent = isNaN(result) ? "" : result;
+    } catch {
+      outputBlock.textContent = "Error";
+    }
+  }
+
+  const buttonMap = {
+    "calculator-0-btn": "0",
+    "calculator-1-btn": "1",
+    "calculator-2-btn": "2",
+    "calculator-3-btn": "3",
+    "calculator-4-btn": "4",
+    "calculator-5-btn": "5",
+    "calculator-6-btn": "6",
+    "calculator-7-btn": "7",
+    "calculator-8-btn": "8",
+    "calculator-9-btn": "9",
+    "calculator-decimal-point-btn": ".",
+    "calculator-plus-btn": "+",
+    "calculator-minus-btn": "-",
+    "calculator-divide-btn": "/",
+    "calculator-multiply-btn": "*",
+    "calculator-parentheses1-btn": "(",
+    "calculator-parentheses2-btn": ")",
+    "calculator-percent-btn": "/100"
+  };
+
+  Object.entries(buttonMap).forEach(([className, value]) => {
     const btn = document.querySelector(`.${className}`);
-    if (!btn) return;
+    if (btn) {
+      btn.addEventListener("click", () => {
+        input += value;
+        updateDisplay();
+      });
+    }
+  });
 
-    btn.addEventListener("click", () => {
-      if (value === "BACK") {
-        currentInput = currentInput.slice(0, -1);
-      } else if (value === "EVAL") {
-        try {
-          const safeInput = currentInput.replace(/%/g, "*0.01");
-          const result = eval(safeInput);
-          outputDisplay.textContent = result ?? "0";
-        } catch {
-          outputDisplay.textContent = "Error";
-        }
-      } else {
-        currentInput += value;
-      }
+  // Equals button
+  const equalsBtn = document.querySelector(".calculator-equals-btn");
+  equalsBtn?.addEventListener("click", () => {
+    try {
+      const sanitized = input.replace(/[^-()\d/*+.]/g, '');
+      const result = Function(`return (${sanitized})`)();
+      outputBlock.textContent = isNaN(result) ? "Error" : result;
+      input = result.toString();
+      updateDisplay();
+    } catch {
+      outputBlock.textContent = "Error";
+    }
+  });
 
-      inputDisplay.textContent = currentInput;
-    });
+  // Backspace button
+  const backspaceBtn = document.querySelector(".calculator-backspace-btn");
+  backspaceBtn?.addEventListener("click", () => {
+    input = input.slice(0, -1);
+    updateDisplay();
   });
 });
