@@ -1477,45 +1477,43 @@ window.Webflow.push(() => {
   initializeCalculator();
 });
 
-document.addEventListener("DOMContentLoaded", () => {
-  const notesToggleBtn = document.querySelector(".toggle-notes-button");
+function initializeNotesFeature() {
+  const toggleNotesBtn = document.querySelector(".toggle-notes-button");
   const notesMenu = document.querySelector(".notes-menu");
   const notesInner = document.querySelector(".notes-inner");
   const hideNotesBtn = document.querySelector(".hide-notes-menu-btn");
   const notesTextarea = document.querySelector(".notes-textarea");
-  const dragArea = document.querySelector(".notes-menu-drag-area");
+  const dragHandle = document.querySelector(".notes-menu-drag-area");
   const autosaveIndicator = document.querySelector(".notes-autosave-indicator");
 
-  if (!notesToggleBtn || !notesMenu || !notesInner || !hideNotesBtn || !notesTextarea || !dragArea) {
-    console.warn("⚠️ Notes UI elements missing.");
+  if (!toggleNotesBtn || !notesMenu || !notesTextarea || !dragHandle) {
+    console.warn("⚠️ Notes elements missing from DOM.");
     return;
   }
 
-  // ✅ Load saved notes on page load
-  const savedNotes = localStorage.getItem("userNotes");
-  if (savedNotes) {
-    notesTextarea.value = savedNotes;
-  }
+  // Load existing notes
+  const savedNotes = localStorage.getItem("userNotes") || "";
+  notesTextarea.value = savedNotes;
 
-  // ✅ Toggle visibility
-  notesToggleBtn.addEventListener("click", () => {
-    notesMenu.style.display = "flex";
+  // Show notes
+  toggleNotesBtn.addEventListener("click", () => {
+    notesMenu.style.display = "block";
     notesMenu.classList.add("active");
   });
 
-  hideNotesBtn.addEventListener("click", () => {
+  // Hide notes
+  hideNotesBtn?.addEventListener("click", () => {
     notesMenu.classList.remove("active");
     setTimeout(() => {
       notesMenu.style.display = "none";
     }, 300);
   });
 
-  // ✅ Dragging (only from .notes-menu-drag-area)
+  // Dragging logic (from drag handle only)
   let isDragging = false;
-  let offsetX = 0;
-  let offsetY = 0;
+  let offsetX, offsetY;
 
-  dragArea.addEventListener("mousedown", (e) => {
+  dragHandle.addEventListener("mousedown", (e) => {
     isDragging = true;
     const rect = notesMenu.getBoundingClientRect();
     offsetX = e.clientX - rect.left;
@@ -1523,28 +1521,41 @@ document.addEventListener("DOMContentLoaded", () => {
     document.body.style.userSelect = "none";
   });
 
-  document.addEventListener("mousemove", (e) => {
-    if (!isDragging) return;
-    notesMenu.style.left = `${e.clientX - offsetX}px`;
-    notesMenu.style.top = `${e.clientY - offsetY}px`;
-  });
-
-  document.addEventListener("mouseup", () => {
+  window.addEventListener("mouseup", () => {
     isDragging = false;
     document.body.style.userSelect = "";
   });
 
-  // ✅ Auto-save with indicator
+  window.addEventListener("mousemove", (e) => {
+    if (!isDragging) return;
+    const x = e.clientX - offsetX;
+    const y = e.clientY - offsetY;
+    notesMenu.style.left = `${x}px`;
+    notesMenu.style.top = `${y}px`;
+    notesMenu.style.position = "absolute";
+  });
+
+  // Auto-save with indicator
   let autosaveTimeout;
   notesTextarea.addEventListener("input", () => {
     localStorage.setItem("userNotes", notesTextarea.value);
 
     if (autosaveIndicator) {
-      autosaveIndicator.classList.add("show");
+      autosaveIndicator.classList.add("show", "typing");
+      autosaveIndicator.classList.remove("saved");
+
       clearTimeout(autosaveTimeout);
       autosaveTimeout = setTimeout(() => {
-        autosaveIndicator.classList.remove("show");
-      }, 1200);
+        autosaveIndicator.classList.remove("typing");
+        autosaveIndicator.classList.add("saved");
+
+        setTimeout(() => {
+          autosaveIndicator.classList.remove("show", "saved");
+        }, 1000);
+      }, 800);
     }
   });
-});
+}
+
+// ✅ Initialize when DOM is ready
+document.addEventListener("DOMContentLoaded", initializeNotesFeature);
