@@ -670,7 +670,7 @@ previewImageLocked = false; // 🔓 Allow 1 update when panel is opened
       nameBottom.textContent = val;
     });
 
-    confirmBtn?.addEventListener("click", () => {
+confirmBtn?.addEventListener("click", async () => {
   const name = input.value?.trim() || "Unnamed Loadout";
   currentLoadout.name = name;
   // Save to localStorage
@@ -692,7 +692,8 @@ const deleteMenu = document.querySelector(".delete-loadout-menu");
 const deleteList = document.querySelector(".loadout-delete-list");
 const cancelDeleteBtn = document.querySelector(".cancel-delete-loadout");
 
-function openDeleteMenu() {
+// Make async because of await inside
+async function openDeleteMenu() {
   const saved = await window.getSavedLoadouts();
 
   deleteList.innerHTML = ""; // Clear old list
@@ -707,7 +708,7 @@ function openDeleteMenu() {
     item.className = "delete-loadout-item";
     item.innerHTML = `
       <span>${loadout.name || "Unnamed Loadout"}</span>
-      <button data-delete-index="${index}" class="confirm-delete-btn"/button>
+      <button data-delete-index="${index}" class="confirm-delete-btn">Delete</button>
     `;
     deleteList.appendChild(item);
   });
@@ -722,15 +723,21 @@ function closeDeleteMenu() {
 deleteBtn?.addEventListener("click", openDeleteMenu);
 cancelDeleteBtn?.addEventListener("click", closeDeleteMenu);
 
-deleteList?.addEventListener("click", (e) => {
+// Make event listener async to use await inside
+deleteList?.addEventListener("click", async (e) => {
   if (e.target.classList.contains("confirm-delete-btn")) {
     const index = parseInt(e.target.getAttribute("data-delete-index"));
     let saved = await window.getSavedLoadouts();
+
     if (index >= 0 && index < saved.length) {
       saved.splice(index, 1);
-      await window.setSavedLoadouts(loadouts);
+
+      await window.setSavedLoadouts(saved);  // <-- fixed to saved here
+
       console.log(`🗑️ Deleted loadout at index ${index}`);
-      openDeleteMenu(); // Refresh list
+
+      await openDeleteMenu(); // Refresh list, await optional but safer
+
       if (typeof loadLoadouts === "function") loadLoadouts(); // optional
     }
   }
@@ -928,20 +935,20 @@ div.addEventListener("mouseleave", () => {
 }
 
   // Load all saved loadouts from localStorage and render them
-  function loadLoadouts() {
-    const saved = await window.getSavedLoadouts();
-    loadoutWrapper.innerHTML = ""; // clear existing
+ async function loadLoadouts() {
+  const saved = await window.getSavedLoadouts();
+  loadoutWrapper.innerHTML = ""; // clear existing
 
-    if (!saved.length) {
-      loadoutWrapper.innerHTML = `<div class="no-loadouts">No loadouts saved yet.</div>`;
-      return;
-    }
-
-    saved.forEach((loadout, index) => {
-      const card = createLoadoutCard(loadout, index);
-      loadoutWrapper.appendChild(card);
-    });
+  if (!saved.length) {
+    loadoutWrapper.innerHTML = `<div class="no-loadouts">No loadouts saved yet.</div>`;
+    return;
   }
+
+  saved.forEach((loadout, index) => {
+    const card = createLoadoutCard(loadout, index);
+    loadoutWrapper.appendChild(card);
+  });
+}
 
 // ✅ DETECT & PREVIEW SHARED LOADOUT
 const urlParams = new URLSearchParams(window.location.search);
@@ -985,51 +992,43 @@ if (sharedRaw && sharedFlag === "1") {
 
   // 🔓 OPEN share menu with card preview
   if (shareBtn && shareMenu && shareCardContainer) {
-    shareBtn.addEventListener("click", () => {
+    shareBtn.addEventListener("click", async () => {
       shareMenu.classList.add("show");
 
-(async () => {
-  const loadouts = await window.getSavedLoadouts();
-  const index = window.lastSelectedLoadoutIndex;
-  if (!loadouts[index]) return;
+      const loadouts = await window.getSavedLoadouts();
+      const index = window.lastSelectedLoadoutIndex;
+      if (!loadouts[index]) return;
 
-  const data = encodeURIComponent(JSON.stringify(loadouts[index]));
-  const url = `${window.location.origin}${window.location.pathname}?sharedLoadout=1&data=${data}`;
-  navigator.clipboard.writeText(url);
-})();
+      const data = encodeURIComponent(JSON.stringify(loadouts[index]));
+      const url = `${window.location.origin}${window.location.pathname}?sharedLoadout=1&data=${data}`;
+      navigator.clipboard.writeText(url);
 
-      if (loadouts[index]) {
-        const card = createLoadoutCard(loadouts[index], index);
-        shareCardContainer.innerHTML = "";
-        shareCardContainer.appendChild(card);
-      }
+      const card = createLoadoutCard(loadouts[index], index);
+      shareCardContainer.innerHTML = "";
+      shareCardContainer.appendChild(card);
     });
   }
 
   // ❌ CANCEL share
-  if (cancelShare) {
-    cancelShare.addEventListener("click", () => {
-      shareMenu.classList.remove("show");
-    });
-  }
+  cancelShare?.addEventListener("click", () => {
+    shareMenu.classList.remove("show");
+  });
 
-// ✅ CONFIRM share: generate & copy URL
-if (confirmShare) {
-  confirmShare.addEventListener("click", async () => {
-    const loadouts = await window.getSavedLoadouts(); // 🔁 Replaces localStorage
+  // ✅ CONFIRM share: generate & copy URL
+  confirmShare?.addEventListener("click", async () => {
+    const loadouts = await window.getSavedLoadouts();
     const index = window.lastSelectedLoadoutIndex;
     if (!loadouts[index]) return;
 
     const data = encodeURIComponent(JSON.stringify(loadouts[index]));
     const url = `${window.location.origin}${window.location.pathname}?sharedLoadout=1&data=${data}`;
-
-    navigator.clipboard.writeText(url); // 📋 Copy to clipboard
+    navigator.clipboard.writeText(url);
 
     shareMenu.classList.remove("show");
   });
-}
 
   // 🔄 CHECK FOR SHARED LOADOUT ON PAGE LOAD
+  (async function handleSharedLoadout() {
     const urlParams = new URLSearchParams(window.location.search);
     const isShared = urlParams.get("sharedLoadout");
     const raw = urlParams.get("data");
@@ -1040,37 +1039,38 @@ if (confirmShare) {
         if (!loadout || !loadout.weapon) throw new Error("Invalid loadout data");
 
         saveMenu?.classList.add("show");
+
         if (saveCardContainer) {
-          const card = createLoadoutCard(loadout, 999); // temporary index
+          const card = createLoadoutCard(loadout, 999); // temp index
           saveCardContainer.innerHTML = "";
           saveCardContainer.appendChild(card);
         }
 
-        // Save if user confirms
-              confirmSave?.addEventListener("click", () => {
+        // Confirm save
+        confirmSave?.addEventListener("click", async () => {
           const saved = await window.getSavedLoadouts();
           saved.push(loadout);
-          await window.setSavedLoadouts(loadouts);
-          saveMenu.classList.remove("show");
+          await window.setSavedLoadouts(saved);
           if (typeof loadLoadouts === "function") loadLoadouts();
- 
-  const url = new URL(window.location.href);
-  url.searchParams.delete("sharedLoadout");
-  url.searchParams.delete("data");
-  window.history.replaceState({}, "", url.pathname + url.search);
-  console.log("✅ Cleared shared loadout from URL after saving.");
 
-  if (saveMenu) {
-    saveMenu.classList.add("animate-out");
+          // Remove shared URL params
+          const url = new URL(window.location.href);
+          url.searchParams.delete("sharedLoadout");
+          url.searchParams.delete("data");
+          window.history.replaceState({}, "", url.pathname + url.search);
+          console.log("✅ Cleared shared loadout from URL after saving.");
 
-    // Wait for the animation to finish before fully hiding
-    setTimeout(() => {
-      saveMenu.classList.remove("show", "active", "animate-out");
-      saveMenu.style.display = "none";
-      console.log("✅ Animated and closed save confirmation panel.");
-    }, 400); // match the transition duration in CSS
-  }
-});
+          // Animate out
+          if (saveMenu) {
+            saveMenu.classList.add("animate-out");
+            setTimeout(() => {
+              saveMenu.classList.remove("show", "active", "animate-out");
+              saveMenu.style.display = "none";
+              console.log("✅ Animated and closed save confirmation panel.");
+            }, 400);
+          }
+        });
+
         // Cancel sharing
         cancelSave?.addEventListener("click", () => {
           saveMenu.classList.remove("show");
@@ -1079,6 +1079,7 @@ if (confirmShare) {
         console.warn("❌ Failed to import shared loadout:", err);
       }
     }
+  })();
 })();
 
 function tryClickAttachment(selector, wrapperSelector, maxAttempts = 20, delay = 100) {
