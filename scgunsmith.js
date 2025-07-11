@@ -947,7 +947,7 @@ async function loadLoadouts() {
     loadoutWrapper.innerHTML = `<div class="no-loadouts">No loadouts saved yet.</div>`;
     return;
   }
-  
+
   saved.forEach((loadout, index) => {
     const card = createLoadoutCard(loadout, index);
     loadoutWrapper.appendChild(card);
@@ -974,9 +974,9 @@ function waitForHelperAndLoad() {
   check();
 }
 
-// Call this instead of loadLoadouts() directly
+// Call this once, instead of calling loadLoadouts() directly
 waitForHelperAndLoad();
-
+  
 // ✅ DETECT & PREVIEW SHARED LOADOUT
 const urlParams = new URLSearchParams(window.location.search);
 const sharedRaw = urlParams.get("data");
