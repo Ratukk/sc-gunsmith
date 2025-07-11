@@ -1354,3 +1354,102 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 });
 })();
+
+document.addEventListener("DOMContentLoaded", () => {
+  const toggleBtn = document.querySelector(".toggle-calculator-button");
+  const calculatorMenu = document.querySelector(".calculator-menu");
+  const hideBtn = document.querySelector(".hide-calculator-menu-btn");
+
+  const inputDisplay = document.querySelector(".entered-numbers-block");
+  const outputDisplay = document.querySelector(".calculated-numbers-output-block");
+
+  const calculatorInner = document.querySelector(".calculator-menu-inner");
+
+  let currentInput = "";
+
+  // Show/Hide toggle
+  if (toggleBtn && calculatorMenu) {
+    toggleBtn.addEventListener("click", () => {
+      calculatorMenu.style.display = calculatorMenu.style.display === "flex" ? "none" : "flex";
+    });
+  }
+
+  if (hideBtn && calculatorMenu) {
+    hideBtn.addEventListener("click", () => {
+      calculatorMenu.style.display = "none";
+    });
+  }
+
+  // Drag logic
+  if (calculatorInner) {
+    let isDragging = false, offsetX = 0, offsetY = 0;
+
+    calculatorInner.addEventListener("mousedown", (e) => {
+      isDragging = true;
+      offsetX = e.clientX - calculatorMenu.offsetLeft;
+      offsetY = e.clientY - calculatorMenu.offsetTop;
+      calculatorInner.style.cursor = "move";
+    });
+
+    document.addEventListener("mousemove", (e) => {
+      if (isDragging) {
+        calculatorMenu.style.left = `${e.clientX - offsetX}px`;
+        calculatorMenu.style.top = `${e.clientY - offsetY}px`;
+        calculatorMenu.style.position = "absolute";
+      }
+    });
+
+    document.addEventListener("mouseup", () => {
+      isDragging = false;
+      calculatorInner.style.cursor = "default";
+    });
+  }
+
+  // Button mappings
+  const buttonMap = [
+    { class: "calculator-parentheses1-btn", value: "(" },
+    { class: "calculator-parentheses2-btn", value: ")" },
+    { class: "calculator-percent-btn", value: "%" },
+    { class: "calculator-backspace-btn", value: "BACK" },
+    { class: "calculator-7-btn", value: "7" },
+    { class: "calculator-8-btn", value: "8" },
+    { class: "calculator-9-btn", value: "9" },
+    { class: "calculator-divide-btn", value: "/" },
+    { class: "calculator-4-btn", value: "4" },
+    { class: "calculator-5-btn", value: "5" },
+    { class: "calculator-6-btn", value: "6" },
+    { class: "calculator-multiply-btn", value: "*" },
+    { class: "calculator-1-btn", value: "1" },
+    { class: "calculator-2-btn", value: "2" },
+    { class: "calculator-3-btn", value: "3" },
+    { class: "calculator-minus-btn", value: "-" },
+    { class: "calculator-0-btn", value: "0" },
+    { class: "calculator-decimal-point-btn", value: "." },
+    { class: "calculator-equals-btn", value: "EVAL" },
+    { class: "calculator-plus-btn", value: "+" },
+  ];
+
+  buttonMap.forEach(({ class: className, value }) => {
+    const btn = document.querySelector(`.${className}`);
+    if (!btn) return;
+
+    btn.addEventListener("click", () => {
+      if (value === "BACK") {
+        currentInput = currentInput.slice(0, -1);
+      } else if (value === "EVAL") {
+        try {
+          // Replace percent with *0.01 for JS eval
+          const safeInput = currentInput.replace(/%/g, "*0.01");
+          const result = eval(safeInput);
+          outputDisplay.textContent = result ?? "0";
+        } catch (e) {
+          outputDisplay.textContent = "Error";
+        }
+      } else {
+        currentInput += value;
+      }
+
+      inputDisplay.textContent = currentInput;
+    });
+  });
+});
