@@ -676,7 +676,7 @@ confirmBtn?.addEventListener("click", async () => {
   // Save to localStorage
   let saved = await window.getSavedLoadouts();
   saved.push({ ...currentLoadout });
- await window.setSavedLoadouts(loadouts);
+await window.setSavedLoadouts(saved);
   savePanel.style.display = "none";
 
   // Optionally clear input
