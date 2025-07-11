@@ -1355,7 +1355,7 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 })();
 
-function initializeCalculator(attempt = 0) {
+(function initializeCalculator(attempt = 0) {
   const toggleBtn = document.querySelector(".toggle-calculator-button");
   const calculatorWrapper = document.querySelector(".calculator-menu");
   const calculator = document.querySelector(".calculator-menu-inner");
@@ -1386,7 +1386,7 @@ function initializeCalculator(attempt = 0) {
     calculatorWrapper.style.display = "none";
   });
 
-  // Draggable logic
+  // === Dragging logic ===
   let isDragging = false, offsetX, offsetY;
 
   calculator.addEventListener("mousedown", (e) => {
@@ -1408,7 +1408,7 @@ function initializeCalculator(attempt = 0) {
     isDragging = false;
   });
 
-  // Calculator logic
+  // === Calculator input logic ===
   let input = "";
 
   function updateDisplay() {
@@ -1471,9 +1471,4 @@ function initializeCalculator(attempt = 0) {
     input = input.slice(0, -1);
     updateDisplay();
   });
-}
-
-// Start the calculator once DOM is ready
-document.addEventListener("DOMContentLoaded", () => {
-  initializeCalculator();
-});
+})();
