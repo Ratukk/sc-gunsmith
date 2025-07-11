@@ -1477,7 +1477,7 @@ window.Webflow.push(() => {
   initializeCalculator();
 });
 
-document.addEventListener("DOMContentLoaded", function () {
+document.addEventListener("DOMContentLoaded", () => {
   const toggleNotesBtn = document.querySelector(".toggle-notes-button");
   const notesMenu = document.querySelector(".notes-menu");
   const notesInner = document.querySelector(".notes-inner");
@@ -1485,41 +1485,52 @@ document.addEventListener("DOMContentLoaded", function () {
   const notesTextarea = document.querySelector(".notes-textarea");
 
   if (!toggleNotesBtn || !notesMenu || !notesInner || !hideNotesBtn || !notesTextarea) {
-    console.warn("⚠️ Notes menu elements missing from DOM");
+    console.warn("⚠️ One or more notes elements missing from DOM.");
     return;
   }
 
-  // 📝 Load saved notes
+  // 🔄 Load saved notes
   const savedNotes = localStorage.getItem("userNotes");
-  if (savedNotes) notesTextarea.value = savedNotes;
+  if (savedNotes) {
+    notesTextarea.value = savedNotes;
+  }
 
   // 💾 Save notes on input
   notesTextarea.addEventListener("input", () => {
     localStorage.setItem("userNotes", notesTextarea.value);
   });
 
-  // 👁️ Toggle notes visibility
+  // 🟢 Show Notes Menu
   toggleNotesBtn.addEventListener("click", () => {
-    notesMenu.style.display = notesMenu.style.display === "flex" ? "none" : "flex";
+    notesMenu.style.display = "flex";
+    notesMenu.classList.add("active");
   });
 
-  // ❌ Hide notes
+  // 🔴 Hide Notes Menu
   hideNotesBtn.addEventListener("click", () => {
-    notesMenu.style.display = "none";
+    notesMenu.classList.remove("active");
+    setTimeout(() => {
+      notesMenu.style.display = "none";
+    }, 300); // Optional delay for animation
   });
 
-  // 🟦 Make draggable
-  makeElementDraggable(notesInner);
+  // 🟦 Make Notes Menu Draggable via .notes-menu-drag-area
+  makeElementDraggable(notesInner, ".notes-menu-drag-area");
 });
 
-// 🧲 Drag logic
-function makeElementDraggable(el) {
+function makeElementDraggable(el, handleSelector) {
+  const dragHandle = el.querySelector(handleSelector);
+  if (!dragHandle) {
+    console.warn(`⚠️ Drag handle "${handleSelector}" not found inside element.`);
+    return;
+  }
+
   let posX = 0, posY = 0, mouseX = 0, mouseY = 0;
 
   el.style.position = "absolute";
-  el.style.cursor = "move";
 
-  el.addEventListener("mousedown", dragMouseDown);
+  dragHandle.style.cursor = "move";
+  dragHandle.addEventListener("mousedown", dragMouseDown);
 
   function dragMouseDown(e) {
     e.preventDefault();
