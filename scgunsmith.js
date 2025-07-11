@@ -934,8 +934,12 @@ div.addEventListener("mouseleave", () => {
   return `<img src="${imageUrl}" alt="${iconKey}" class="active-poker-icon-${position}" loading="lazy" />`;
 }
 
-// Load and render saved loadouts
 async function loadLoadouts() {
+  if (typeof window.getSavedLoadouts !== "function") {
+    console.warn("⚠️ getSavedLoadouts not ready yet, skipping loadLoadouts.");
+    return;
+  }
+
   const saved = await window.getSavedLoadouts();
   loadoutWrapper.innerHTML = ""; // clear existing
 
@@ -943,7 +947,7 @@ async function loadLoadouts() {
     loadoutWrapper.innerHTML = `<div class="no-loadouts">No loadouts saved yet.</div>`;
     return;
   }
-
+  
   saved.forEach((loadout, index) => {
     const card = createLoadoutCard(loadout, index);
     loadoutWrapper.appendChild(card);
