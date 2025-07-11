@@ -1476,3 +1476,72 @@ window.Webflow ||= [];
 window.Webflow.push(() => {
   initializeCalculator();
 });
+
+document.addEventListener("DOMContentLoaded", function () {
+  const toggleNotesBtn = document.querySelector(".toggle-notes-button");
+  const notesMenu = document.querySelector(".notes-menu");
+  const notesInner = document.querySelector(".notes-inner");
+  const hideNotesBtn = document.querySelector(".hide-notes-menu-btn");
+  const notesTextarea = document.querySelector(".notes-textarea");
+
+  if (!toggleNotesBtn || !notesMenu || !notesInner || !hideNotesBtn || !notesTextarea) {
+    console.warn("⚠️ Notes menu elements missing from DOM");
+    return;
+  }
+
+  // 📝 Load saved notes
+  const savedNotes = localStorage.getItem("userNotes");
+  if (savedNotes) notesTextarea.value = savedNotes;
+
+  // 💾 Save notes on input
+  notesTextarea.addEventListener("input", () => {
+    localStorage.setItem("userNotes", notesTextarea.value);
+  });
+
+  // 👁️ Toggle notes visibility
+  toggleNotesBtn.addEventListener("click", () => {
+    notesMenu.style.display = notesMenu.style.display === "flex" ? "none" : "flex";
+  });
+
+  // ❌ Hide notes
+  hideNotesBtn.addEventListener("click", () => {
+    notesMenu.style.display = "none";
+  });
+
+  // 🟦 Make draggable
+  makeElementDraggable(notesInner);
+});
+
+// 🧲 Drag logic
+function makeElementDraggable(el) {
+  let posX = 0, posY = 0, mouseX = 0, mouseY = 0;
+
+  el.style.position = "absolute";
+  el.style.cursor = "move";
+
+  el.addEventListener("mousedown", dragMouseDown);
+
+  function dragMouseDown(e) {
+    e.preventDefault();
+    mouseX = e.clientX;
+    mouseY = e.clientY;
+    document.addEventListener("mousemove", elementDrag);
+    document.addEventListener("mouseup", stopDrag);
+  }
+
+  function elementDrag(e) {
+    e.preventDefault();
+    posX = mouseX - e.clientX;
+    posY = mouseY - e.clientY;
+    mouseX = e.clientX;
+    mouseY = e.clientY;
+
+    el.style.top = (el.offsetTop - posY) + "px";
+    el.style.left = (el.offsetLeft - posX) + "px";
+  }
+
+  function stopDrag() {
+    document.removeEventListener("mousemove", elementDrag);
+    document.removeEventListener("mouseup", stopDrag);
+  }
+}
