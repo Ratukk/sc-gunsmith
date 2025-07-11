@@ -1495,13 +1495,22 @@ function initializeNotesFeature() {
   const savedNotes = localStorage.getItem("userNotes") || "";
   notesTextarea.value = savedNotes;
 
-  // Show notes
+  // Toggle show/hide notes with the same button
   toggleNotesBtn.addEventListener("click", () => {
-    notesMenu.style.display = "block";
-    notesMenu.classList.add("active");
+    const isVisible = notesMenu.classList.contains("active");
+
+    if (isVisible) {
+      notesMenu.classList.remove("active");
+      setTimeout(() => {
+        notesMenu.style.display = "none";
+      }, 300);
+    } else {
+      notesMenu.style.display = "block";
+      notesMenu.classList.add("active");
+    }
   });
 
-  // Hide notes
+  // Optional: separate close button
   hideNotesBtn?.addEventListener("click", () => {
     notesMenu.classList.remove("active");
     setTimeout(() => {
@@ -1509,7 +1518,7 @@ function initializeNotesFeature() {
     }, 300);
   });
 
-  // Dragging logic (from drag handle only)
+  // Dragging logic
   let isDragging = false;
   let offsetX, offsetY;
 
@@ -1535,7 +1544,7 @@ function initializeNotesFeature() {
     notesMenu.style.position = "absolute";
   });
 
-  // Auto-save with indicator
+  // Auto-save logic
   let autosaveTimeout;
   notesTextarea.addEventListener("input", () => {
     localStorage.setItem("userNotes", notesTextarea.value);
@@ -1557,5 +1566,5 @@ function initializeNotesFeature() {
   });
 }
 
-// ✅ Initialize when DOM is ready
+// ✅ Initialize on DOMContentLoaded
 document.addEventListener("DOMContentLoaded", initializeNotesFeature);
