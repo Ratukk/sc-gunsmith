@@ -1355,7 +1355,7 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 })();
 
-document.addEventListener("DOMContentLoaded", () => {
+function initializeCalculator(attempt = 0) {
   const toggleBtn = document.querySelector(".toggle-calculator-button");
   const calculatorWrapper = document.querySelector(".calculator-menu");
   const calculator = document.querySelector(".calculator-menu-inner");
@@ -1364,28 +1364,30 @@ document.addEventListener("DOMContentLoaded", () => {
   const outputBlock = document.querySelector(".calculated-numbers-output-block");
 
   if (!toggleBtn || !calculator || !hideBtn || !inputBlock || !outputBlock) {
-    console.warn("⚠️ Calculator elements missing from DOM");
+    if (attempt < 20) {
+      setTimeout(() => initializeCalculator(attempt + 1), 200);
+    } else {
+      console.warn("⚠️ Calculator elements still missing from DOM after retries.");
+    }
     return;
   }
 
-  // Start hidden
+  console.log("✅ Calculator initialized");
+
   calculatorWrapper.style.display = "none";
 
-  // Toggle calculator on button click
   toggleBtn.addEventListener("click", (e) => {
-    e.preventDefault(); // Important for Link Blocks!
+    e.preventDefault();
     calculatorWrapper.style.display =
       calculatorWrapper.style.display === "none" ? "flex" : "none";
   });
 
-  // Hide calculator
   hideBtn.addEventListener("click", () => {
     calculatorWrapper.style.display = "none";
   });
 
-  // Drag to move calculator
-  let isDragging = false;
-  let offsetX, offsetY;
+  // Draggable logic
+  let isDragging = false, offsetX, offsetY;
 
   calculator.addEventListener("mousedown", (e) => {
     if (!e.target.classList.contains("calculator-menu-inner")) return;
@@ -1451,7 +1453,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  // Equals button
   const equalsBtn = document.querySelector(".calculator-equals-btn");
   equalsBtn?.addEventListener("click", () => {
     try {
@@ -1465,10 +1466,14 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  // Backspace button
   const backspaceBtn = document.querySelector(".calculator-backspace-btn");
   backspaceBtn?.addEventListener("click", () => {
     input = input.slice(0, -1);
     updateDisplay();
   });
+}
+
+// Start the calculator once DOM is ready
+document.addEventListener("DOMContentLoaded", () => {
+  initializeCalculator();
 });
