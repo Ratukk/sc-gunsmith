@@ -1355,20 +1355,17 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 })();
 
-(function initializeCalculator(attempt = 0) {
-  const toggleBtn = document.querySelector(".toggle-calculator-button");
+window.Webflow ||= [];
+window.Webflow.push(function () {
+  const calcToggleBtn = document.querySelector(".toggle-calculator-button");
   const calculatorWrapper = document.querySelector(".calculator-menu");
   const calculator = document.querySelector(".calculator-menu-inner");
   const hideBtn = document.querySelector(".hide-calculator-menu-btn");
   const inputBlock = document.querySelector(".entered-numbers-block");
   const outputBlock = document.querySelector(".calculated-numbers-output-block");
 
-  if (!toggleBtn || !calculator || !hideBtn || !inputBlock || !outputBlock) {
-    if (attempt < 20) {
-      setTimeout(() => initializeCalculator(attempt + 1), 200);
-    } else {
-      console.warn("⚠️ Calculator elements still missing from DOM after retries.");
-    }
+  if (!calcToggleBtn || !calculator || !hideBtn || !inputBlock || !outputBlock) {
+    console.warn("⚠️ Calculator elements missing from DOM (Webflow-ready context).");
     return;
   }
 
@@ -1376,7 +1373,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   calculatorWrapper.style.display = "none";
 
-  toggleBtn.addEventListener("click", (e) => {
+  calcToggleBtn.addEventListener("click", (e) => {
     e.preventDefault();
     calculatorWrapper.style.display =
       calculatorWrapper.style.display === "none" ? "flex" : "none";
@@ -1386,7 +1383,7 @@ document.addEventListener("DOMContentLoaded", () => {
     calculatorWrapper.style.display = "none";
   });
 
-  // === Dragging logic ===
+  // Dragging
   let isDragging = false, offsetX, offsetY;
 
   calculator.addEventListener("mousedown", (e) => {
@@ -1408,7 +1405,7 @@ document.addEventListener("DOMContentLoaded", () => {
     isDragging = false;
   });
 
-  // === Calculator input logic ===
+  // Input & display logic
   let input = "";
 
   function updateDisplay() {
@@ -1471,4 +1468,4 @@ document.addEventListener("DOMContentLoaded", () => {
     input = input.slice(0, -1);
     updateDisplay();
   });
-})();
+});
