@@ -670,13 +670,13 @@ previewImageLocked = false; // 🔓 Allow 1 update when panel is opened
       nameBottom.textContent = val;
     });
 
-confirmBtn?.addEventListener("click", async () => {
+    confirmBtn?.addEventListener("click", () => {
   const name = input.value?.trim() || "Unnamed Loadout";
   currentLoadout.name = name;
   // Save to localStorage
-  let saved = await window.getSavedLoadouts();
+  let saved = JSON.parse(localStorage.getItem("savedLoadouts") || "[]");
   saved.push({ ...currentLoadout });
-await window.setSavedLoadouts(saved);
+  localStorage.setItem("savedLoadouts", JSON.stringify(saved));
   savePanel.style.display = "none";
 
   // Optionally clear input
@@ -692,9 +692,8 @@ const deleteMenu = document.querySelector(".delete-loadout-menu");
 const deleteList = document.querySelector(".loadout-delete-list");
 const cancelDeleteBtn = document.querySelector(".cancel-delete-loadout");
 
-// Make async because of await inside
-async function openDeleteMenu() {
-  const saved = await window.getSavedLoadouts();
+function openDeleteMenu() {
+  const saved = JSON.parse(localStorage.getItem("savedLoadouts") || "[]");
 
   deleteList.innerHTML = ""; // Clear old list
 
@@ -708,7 +707,7 @@ async function openDeleteMenu() {
     item.className = "delete-loadout-item";
     item.innerHTML = `
       <span>${loadout.name || "Unnamed Loadout"}</span>
-      <button data-delete-index="${index}" class="confirm-delete-btn">Delete</button>
+      <button data-delete-index="${index}" class="confirm-delete-btn"/button>
     `;
     deleteList.appendChild(item);
   });
@@ -723,21 +722,15 @@ function closeDeleteMenu() {
 deleteBtn?.addEventListener("click", openDeleteMenu);
 cancelDeleteBtn?.addEventListener("click", closeDeleteMenu);
 
-// Make event listener async to use await inside
-deleteList?.addEventListener("click", async (e) => {
+deleteList?.addEventListener("click", (e) => {
   if (e.target.classList.contains("confirm-delete-btn")) {
     const index = parseInt(e.target.getAttribute("data-delete-index"));
-    let saved = await window.getSavedLoadouts();
-
+    let saved = JSON.parse(localStorage.getItem("savedLoadouts") || "[]");
     if (index >= 0 && index < saved.length) {
       saved.splice(index, 1);
-
-      await window.setSavedLoadouts(saved);  // <-- fixed to saved here
-
+      localStorage.setItem("savedLoadouts", JSON.stringify(saved));
       console.log(`🗑️ Deleted loadout at index ${index}`);
-
-      await openDeleteMenu(); // Refresh list, await optional but safer
-
+      openDeleteMenu(); // Refresh list
       if (typeof loadLoadouts === "function") loadLoadouts(); // optional
     }
   }
@@ -934,49 +927,22 @@ div.addEventListener("mouseleave", () => {
   return `<img src="${imageUrl}" alt="${iconKey}" class="active-poker-icon-${position}" loading="lazy" />`;
 }
 
-async function loadLoadouts() {
-  if (typeof window.getSavedLoadouts !== "function") {
-    console.warn("⚠️ getSavedLoadouts not ready yet, skipping loadLoadouts.");
-    return;
-  }
+  // Load all saved loadouts from localStorage and render them
+  function loadLoadouts() {
+    const saved = JSON.parse(localStorage.getItem("savedLoadouts") || "[]");
+    loadoutWrapper.innerHTML = ""; // clear existing
 
-  const saved = await window.getSavedLoadouts();
-  loadoutWrapper.innerHTML = ""; // clear existing
-
-  if (!saved.length) {
-    loadoutWrapper.innerHTML = `<div class="no-loadouts">No loadouts saved yet.</div>`;
-    return;
-  }
-
-  saved.forEach((loadout, index) => {
-    const card = createLoadoutCard(loadout, index);
-    loadoutWrapper.appendChild(card);
-  });
-}
-
-// Wait until window.getSavedLoadouts is defined, then load
-function waitForHelperAndLoad() {
-  const maxTries = 30;
-  let tries = 0;
-
-  function check() {
-    if (typeof window.getSavedLoadouts === "function") {
-      console.log("✅ getSavedLoadouts found, loading loadouts...");
-      loadLoadouts();
-    } else if (tries++ < maxTries) {
-      console.log("⏳ Waiting for getSavedLoadouts...");
-      setTimeout(check, 100);
-    } else {
-      console.warn("⚠️ getSavedLoadouts not available after retries");
+    if (!saved.length) {
+      loadoutWrapper.innerHTML = `<div class="no-loadouts">No loadouts saved yet.</div>`;
+      return;
     }
+
+    saved.forEach((loadout, index) => {
+      const card = createLoadoutCard(loadout, index);
+      loadoutWrapper.appendChild(card);
+    });
   }
 
-  check();
-}
-
-// Call this once, instead of calling loadLoadouts() directly
-waitForHelperAndLoad();
-  
 // ✅ DETECT & PREVIEW SHARED LOADOUT
 const urlParams = new URLSearchParams(window.location.search);
 const sharedRaw = urlParams.get("data");
@@ -1019,43 +985,44 @@ if (sharedRaw && sharedFlag === "1") {
 
   // 🔓 OPEN share menu with card preview
   if (shareBtn && shareMenu && shareCardContainer) {
-    shareBtn.addEventListener("click", async () => {
+    shareBtn.addEventListener("click", () => {
       shareMenu.classList.add("show");
 
-      const loadouts = await window.getSavedLoadouts();
+      const loadouts = JSON.parse(localStorage.getItem("savedLoadouts") || "[]");
       const index = window.lastSelectedLoadoutIndex;
-      if (!loadouts[index]) return;
 
-      const data = encodeURIComponent(JSON.stringify(loadouts[index]));
-      const url = `${window.location.origin}${window.location.pathname}?sharedLoadout=1&data=${data}`;
-      navigator.clipboard.writeText(url);
-
-      const card = createLoadoutCard(loadouts[index], index);
-      shareCardContainer.innerHTML = "";
-      shareCardContainer.appendChild(card);
+      if (loadouts[index]) {
+        const card = createLoadoutCard(loadouts[index], index);
+        shareCardContainer.innerHTML = "";
+        shareCardContainer.appendChild(card);
+      }
     });
   }
 
   // ❌ CANCEL share
-  cancelShare?.addEventListener("click", () => {
-    shareMenu.classList.remove("show");
-  });
+  if (cancelShare) {
+    cancelShare.addEventListener("click", () => {
+      shareMenu.classList.remove("show");
+    });
+  }
 
-  // ✅ CONFIRM share: generate & copy URL
-  confirmShare?.addEventListener("click", async () => {
-    const loadouts = await window.getSavedLoadouts();
+// ✅ CONFIRM share: generate & copy URL
+if (confirmShare) {
+  confirmShare.addEventListener("click", () => {
+    const loadouts = JSON.parse(localStorage.getItem("savedLoadouts") || "[]");
     const index = window.lastSelectedLoadoutIndex;
     if (!loadouts[index]) return;
 
     const data = encodeURIComponent(JSON.stringify(loadouts[index]));
     const url = `${window.location.origin}${window.location.pathname}?sharedLoadout=1&data=${data}`;
-    navigator.clipboard.writeText(url);
+
+    navigator.clipboard.writeText(url); // 🧼 Alert removed, nothing added
 
     shareMenu.classList.remove("show");
   });
+}
 
   // 🔄 CHECK FOR SHARED LOADOUT ON PAGE LOAD
-  (async function handleSharedLoadout() {
     const urlParams = new URLSearchParams(window.location.search);
     const isShared = urlParams.get("sharedLoadout");
     const raw = urlParams.get("data");
@@ -1066,38 +1033,37 @@ if (sharedRaw && sharedFlag === "1") {
         if (!loadout || !loadout.weapon) throw new Error("Invalid loadout data");
 
         saveMenu?.classList.add("show");
-
         if (saveCardContainer) {
-          const card = createLoadoutCard(loadout, 999); // temp index
+          const card = createLoadoutCard(loadout, 999); // temporary index
           saveCardContainer.innerHTML = "";
           saveCardContainer.appendChild(card);
         }
 
-        // Confirm save
-        confirmSave?.addEventListener("click", async () => {
-          const saved = await window.getSavedLoadouts();
+        // Save if user confirms
+              confirmSave?.addEventListener("click", () => {
+          const saved = JSON.parse(localStorage.getItem("savedLoadouts") || "[]");
           saved.push(loadout);
-          await window.setSavedLoadouts(saved);
+          localStorage.setItem("savedLoadouts", JSON.stringify(saved));
+          saveMenu.classList.remove("show");
           if (typeof loadLoadouts === "function") loadLoadouts();
+ 
+  const url = new URL(window.location.href);
+  url.searchParams.delete("sharedLoadout");
+  url.searchParams.delete("data");
+  window.history.replaceState({}, "", url.pathname + url.search);
+  console.log("✅ Cleared shared loadout from URL after saving.");
 
-          // Remove shared URL params
-          const url = new URL(window.location.href);
-          url.searchParams.delete("sharedLoadout");
-          url.searchParams.delete("data");
-          window.history.replaceState({}, "", url.pathname + url.search);
-          console.log("✅ Cleared shared loadout from URL after saving.");
+  if (saveMenu) {
+    saveMenu.classList.add("animate-out");
 
-          // Animate out
-          if (saveMenu) {
-            saveMenu.classList.add("animate-out");
-            setTimeout(() => {
-              saveMenu.classList.remove("show", "active", "animate-out");
-              saveMenu.style.display = "none";
-              console.log("✅ Animated and closed save confirmation panel.");
-            }, 400);
-          }
-        });
-
+    // Wait for the animation to finish before fully hiding
+    setTimeout(() => {
+      saveMenu.classList.remove("show", "active", "animate-out");
+      saveMenu.style.display = "none";
+      console.log("✅ Animated and closed save confirmation panel.");
+    }, 400); // match the transition duration in CSS
+  }
+});
         // Cancel sharing
         cancelSave?.addEventListener("click", () => {
           saveMenu.classList.remove("show");
@@ -1106,7 +1072,6 @@ if (sharedRaw && sharedFlag === "1") {
         console.warn("❌ Failed to import shared loadout:", err);
       }
     }
-  })();
 })();
 
 function tryClickAttachment(selector, wrapperSelector, maxAttempts = 20, delay = 100) {
@@ -1311,7 +1276,8 @@ function handleConfirmationSuccess(buttonSelector, panelSelector) {
 }
   
 document.addEventListener("DOMContentLoaded", () => {
-  waitForHelperAndLoad();
+  // 🔄 Load existing local loadouts
+  loadLoadouts();
 
   // 🔗 DOM references
   const shareMenu = document.querySelector(".share-loadout-menu");
